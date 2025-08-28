@@ -33,7 +33,7 @@ export async function createWindow() {
 
   if (isDevelopment) {
     mainWindow.loadURL('http://localhost:3000');
-    mainWindow.webContents.openDevTools();
+    // mainWindow.webContents.openDevTools(); // Commented out for cleaner development
   } else {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
   }
@@ -110,14 +110,19 @@ async function initializeApp() {
 }
 
 app.whenReady().then(async () => {
-  // Create system tray
+  // Initialize the application first (includes database)
+  await initializeApp();
+  
+  // Create system tray after database is ready
   tray = createSystemTrayMenu();
   
   // Register global hotkeys
-  registerGlobalHotkeys();
+  await registerGlobalHotkeys();
   
-  // Initialize the application
-  await initializeApp();
+  // Create initial window for visibility
+  if (!mainWindow) {
+    createWindow();
+  }
 });
 
 app.on('window-all-closed', () => {

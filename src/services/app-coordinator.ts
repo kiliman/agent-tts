@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { AgentTTSConfig } from '../types/config';
+import { AgentTTSConfig, ProfileConfig } from '../types/config';
 import { DatabaseManager } from './database';
 import { FileMonitor } from './file-monitor';
 import { MessageProcessor } from './message-processor';
@@ -35,9 +35,9 @@ export class AppCoordinator extends EventEmitter {
     });
     
     // Handle processed messages ready for TTS
-    this.messageProcessor.on('messageQueued', (message: QueuedMessage) => {
+    this.messageProcessor.on('messageQueued', async (message: QueuedMessage) => {
       // Check if profile is enabled and not muted
-      if (this.isProfileEnabled(message.profile)) {
+      if (await this.isProfileEnabled(message.profile)) {
         this.ttsQueue.addToQueue(message);
       }
     });
@@ -72,9 +72,12 @@ export class AppCoordinator extends EventEmitter {
     this.ttsQueue.setMuted(config.muted || false);
     
     // Start monitoring files for enabled profiles
-    const enabledProfiles = config.profiles.filter(p => 
-      p.enabled !== false && this.isProfileEnabled(p.id)
-    );
+    const enabledProfiles: ProfileConfig[] = [];
+    for (const profile of config.profiles) {
+      if (profile.enabled !== false && await this.isProfileEnabled(profile.id)) {
+        enabledProfiles.push(profile);
+      }
+    }
     
     await this.fileMonitor.startMonitoring(enabledProfiles);
   }

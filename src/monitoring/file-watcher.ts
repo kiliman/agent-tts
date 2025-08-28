@@ -36,7 +36,7 @@ export class FileMonitor extends EventEmitter {
 
     // Start watchers for each enabled profile
     for (const profile of this.config.profiles) {
-      if (this.isProfileEnabled(profile)) {
+      if (await this.isProfileEnabled(profile)) {
         await this.startProfileWatcher(profile);
       }
     }
@@ -51,8 +51,10 @@ export class FileMonitor extends EventEmitter {
     });
   }
 
-  private isProfileEnabled(profile: ProfileConfig): boolean {
-    return this.settings.getProfileEnabled(profile.name) && !this.settings.getMuteAll();
+  private async isProfileEnabled(profile: ProfileConfig): Promise<boolean> {
+    const isEnabled = await this.settings.getProfileEnabled(profile.name);
+    const isMuted = await this.settings.getMuteAll();
+    return isEnabled && !isMuted;
   }
 
   private async startProfileWatcher(profile: ProfileConfig): Promise<void> {
@@ -106,12 +108,12 @@ export class FileMonitor extends EventEmitter {
   private async handleFileChange(filePath: string, profile: ProfileConfig): Promise<void> {
     try {
       // Check if profile is still enabled
-      if (!this.isProfileEnabled(profile)) {
+      if (!(await this.isProfileEnabled(profile))) {
         return;
       }
 
       // Get file state from database
-      const fileState = this.fileStates.getFileState(filePath);
+      const fileState = await this.fileStates.getFileState(filePath);
       const stats = fs.statSync(filePath);
       
       // Read only new content

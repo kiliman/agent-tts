@@ -6,19 +6,28 @@ import { SettingsRepository } from '../database/settings';
 let tray: Tray | null = null;
 
 export function createSystemTrayMenu(): Tray {
-  // Create tray icon
-  const iconPath = path.join(__dirname, '../../assets/tray-icon.png');
+  // Create a simple tray icon programmatically
+  let icon: Electron.NativeImage;
   
-  // For macOS, create a smaller icon
-  let icon = nativeImage.createFromPath(iconPath);
   if (process.platform === 'darwin') {
-    icon = icon.resize({ width: 16, height: 16 });
+    // For macOS, use a simple base64 encoded icon
+    icon = nativeImage.createFromDataURL('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAAbwAAAG8B8aLcQwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAEZSURBVDiNpdMxSgNRFIXhbzJDJjExiBYWFoKFhYWFnY2djY2djY2djY2NjY2djY2FhYWFhYWFIAiCYCBkMpl5b975LYaEJBqT4sLjcu495/DgPpKU6na7X0mS+Hw+f5vP568Afvu93RiGIUEQXAA7wDZQBEpAs9VqvQBfg8EgT5LEcRxbKBRwXZeqqur1ev0YuANegUeSJJHneZbn+TYajW4ajUYNOAH2gQ3AAhzAB3rAI3AH3A+Hw0+AyWTyUiqVDoBjoAHUlv8KGAJ3wA1wO51OPwCGw+FHtVo9BE6BQ2B3hXEIPAOXwOVoNBoAhGH4Wq/XT4FzYG+VcQa8AOfA5Xg8HgP8Amc/8J5D0vLfvB9/AB9bejQhf5F5AAAAAElFTkSuQmCC');
+  } else {
+    // For other platforms, create a simple 16x16 icon
+    const iconPath = path.join(__dirname, '../../assets/tray-icon.png');
+    if (require('fs').existsSync(iconPath)) {
+      icon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
+    } else {
+      // Fallback to empty icon
+      icon = nativeImage.createEmpty().resize({ width: 16, height: 16 });
+    }
   }
   
   tray = new Tray(icon);
   tray.setToolTip('Agent TTS');
   
-  updateTrayMenu();
+  // Initialize menu immediately
+  updateTrayMenu().catch(console.error);
   
   return tray;
 }

@@ -40,8 +40,9 @@ export class ElevenLabsTTSService extends BaseTTSService {
         }
       });
       
-      // Play the audio stream directly
-      await play(audioStream);
+      // Convert ReadableStream to an async iterable
+      const audioIterable = this.streamToAsyncIterable(audioStream);
+      await play(audioIterable);
     } catch (error) {
       console.error('ElevenLabs TTS Error:', error);
       throw error;
@@ -50,5 +51,19 @@ export class ElevenLabsTTSService extends BaseTTSService {
   
   isAvailable(): boolean {
     return !!this.client && !!this.apiKey;
+  }
+  
+  private async *streamToAsyncIterable(stream: ReadableStream<Uint8Array>): AsyncGenerator<Uint8Array> {
+    const reader = stream.getReader();
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        yield value;
+      }
+    } finally {
+      reader.releaseLock();
+    }
   }
 }
