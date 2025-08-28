@@ -63,6 +63,9 @@ importers:
       concurrently:
         specifier: ^8.2.2
         version: 8.2.2
+      dotenv:
+        specifier: ^17.2.1
+        version: 17.2.1
       electron:
         specifier: ^28.1.3
         version: 28.3.3
@@ -1173,6 +1176,10 @@ packages:
 
   dotenv-expand@5.1.0:
     resolution: {integrity: sha512-YXQl1DSa4/PQyRfgrv6aoNjhasp/p4qs9FjJ4q4cQk+8m4r6k4ZSiEyytKG8f8W9gi8WsQtIObNmKd+tMzNTmA==}
+
+  dotenv@17.2.1:
+    resolution: {integrity: sha512-kQhDYKZecqnM0fCnzI5eIv5L4cAe/iRI+HqMbO/hbRdTAeXDG+M9FjipUxNfbARuEg4iHIbhnhs78BCHNbSxEQ==}
+    engines: {node: '>=12'}
 
   dotenv@9.0.2:
     resolution: {integrity: sha512-I9OvvrHp4pIARv4+x9iuewrWycX6CcZtoAu1XrzPxc5UygMJXJZYmBsynku8IkrJwgypE5DGNjDPmPRhDCptUg==}
@@ -4069,6 +4076,8 @@ snapshots:
       is-obj: 2.0.0
 
   dotenv-expand@5.1.0: {}
+
+  dotenv@17.2.1: {}
 
   dotenv@9.0.2: {}
 
