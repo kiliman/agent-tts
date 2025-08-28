@@ -1,6 +1,6 @@
 import { Tray, Menu, app, nativeImage } from 'electron';
 import path from 'path';
-import { store, mainWindow } from './main';
+import { store, mainWindow, createWindow } from './main';
 import { SettingsRepository } from '../database/settings';
 
 let tray: Tray | null = null;
@@ -67,7 +67,7 @@ export function updateTrayMenu() {
       label: 'Show Logs',
       click: () => {
         if (!mainWindow) {
-          require('./main').createWindow();
+          createWindow();
         } else {
           mainWindow.show();
           mainWindow.focus();

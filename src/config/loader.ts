@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import chokidar from 'chokidar';
-import { transformSync } from 'ts-blank-space';
+import * as tsBlankSpace from 'ts-blank-space';
 import { AppConfig } from '../shared/types';
 import { validateConfig } from './validator';
 
@@ -72,10 +72,7 @@ export class ConfigLoader extends EventEmitter {
       // If TypeScript file, transform it to remove type annotations
       if (filePath.endsWith('.ts')) {
         try {
-          const result = transformSync(fileContent, {
-            loader: 'ts'
-          });
-          code = result.code;
+          code = tsBlankSpace.default(fileContent);
         } catch (tsError) {
           this.lastError = `TypeScript transform error: ${tsError instanceof Error ? tsError.message : String(tsError)}`;
           return null;

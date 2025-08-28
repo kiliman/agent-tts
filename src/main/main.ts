@@ -7,15 +7,18 @@ import { createSystemTrayMenu } from './menu';
 import { registerGlobalHotkeys } from './hotkeys';
 import Store from 'electron-store';
 
-let mainWindow: BrowserWindow | null = null;
+export let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let configLoader: ConfigLoader | null = null;
 let fileMonitor: FileMonitor | null = null;
 
+// Make fileMonitor available globally for menu
+global.fileMonitor = null;
+
 const store = new Store();
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
-async function createWindow() {
+export async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 900,
     height: 700,
@@ -77,6 +80,7 @@ async function initializeApp() {
 
     // Start file monitoring
     fileMonitor = new FileMonitor(config);
+    global.fileMonitor = fileMonitor;
     await fileMonitor.start();
 
     // Set up configuration hot-reload
@@ -85,6 +89,7 @@ async function initializeApp() {
         await fileMonitor.stop();
         await fileMonitor.waitForPlaybackCompletion();
         fileMonitor = new FileMonitor(newConfig);
+        global.fileMonitor = fileMonitor;
         await fileMonitor.start();
       }
     });
@@ -148,4 +153,4 @@ ipcMain.handle('show-log-window', () => {
   }
 });
 
-export { mainWindow, store };
+export { store };
