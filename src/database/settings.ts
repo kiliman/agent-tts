@@ -1,33 +1,33 @@
 import { getDatabase } from './schema';
 
 export class SettingsRepository {
-  getSetting(key: string): string | null {
+  async getSetting(key: string): Promise<string | null> {
     const db = getDatabase();
-    const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined;
+    const row = await db.get<{ value: string }>('SELECT value FROM app_settings WHERE key = ?', key);
     return row?.value || null;
   }
 
-  setSetting(key: string, value: string): void {
+  async setSetting(key: string, value: string): Promise<void> {
     const db = getDatabase();
     const now = Date.now();
     
-    db.prepare(`
+    await db.run(`
       INSERT INTO app_settings (key, value, updated_at)
       VALUES (?, ?, ?)
       ON CONFLICT(key) DO UPDATE SET
         value = excluded.value,
         updated_at = excluded.updated_at
-    `).run(key, value, now);
+    `, key, value, now);
   }
 
-  deleteSetting(key: string): void {
+  async deleteSetting(key: string): Promise<void> {
     const db = getDatabase();
-    db.prepare('DELETE FROM app_settings WHERE key = ?').run(key);
+    await db.run('DELETE FROM app_settings WHERE key = ?', key);
   }
 
-  getAllSettings(): Record<string, string> {
+  async getAllSettings(): Promise<Record<string, string>> {
     const db = getDatabase();
-    const rows = db.prepare('SELECT key, value FROM app_settings').all() as Array<{ key: string; value: string }>;
+    const rows = await db.all<{ key: string; value: string }[]>('SELECT key, value FROM app_settings');
     
     const settings: Record<string, string> = {};
     for (const row of rows) {
@@ -38,29 +38,32 @@ export class SettingsRepository {
   }
 
   // Profile-specific settings helpers
-  getProfileEnabled(profileName: string): boolean {
-    const value = this.getSetting(`profile.${profileName}.enabled`);
-    return value === null ? true : value === 'true';
+  async getProfileEnabled(profileName: string): Promise<boolean> {
+    const value = await this.getSetting(`profile:${profileName}:enabled`);
+    return value === null || value === 'true';
   }
 
-  setProfileEnabled(profileName: string, enabled: boolean): void {
-    this.setSetting(`profile.${profileName}.enabled`, enabled.toString());
+  async setProfileEnabled(profileName: string, enabled: boolean): Promise<void> {
+    await this.setSetting(`profile:${profileName}:enabled`, enabled.toString());
   }
 
-  getMuteAll(): boolean {
-    const value = this.getSetting('mute_all');
+  // Global mute setting
+  async getMuteAll(): Promise<boolean> {
+    const value = await this.getSetting('global:mute');
     return value === 'true';
   }
 
-  setMuteAll(muted: boolean): void {
-    this.setSetting('mute_all', muted.toString());
+  async setMuteAll(muted: boolean): Promise<void> {
+    await this.setSetting('global:mute', muted.toString());
   }
 
-  getGlobalHotkey(): string {
-    return this.getSetting('global_hotkey') || 'Control+Escape';
+  // Global hotkey setting
+  async getGlobalHotkey(): Promise<string> {
+    const value = await this.getSetting('global:hotkey');
+    return value || 'Ctrl+Esc';
   }
 
-  setGlobalHotkey(hotkey: string): void {
-    this.setSetting('global_hotkey', hotkey);
+  async setGlobalHotkey(hotkey: string): Promise<void> {
+    await this.setSetting('global:hotkey', hotkey);
   }
 }

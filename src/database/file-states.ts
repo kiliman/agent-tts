@@ -10,9 +10,9 @@ export interface FileState {
 }
 
 export class FileStateRepository {
-  getFileState(filePath: string): FileState | null {
+  async getFileState(filePath: string): Promise<FileState | null> {
     const db = getDatabase();
-    const row = db.prepare(`
+    const row = await db.get<FileState>(`
       SELECT 
         file_path as filePath,
         profile,
@@ -22,16 +22,16 @@ export class FileStateRepository {
         updated_at as updatedAt
       FROM file_states
       WHERE file_path = ?
-    `).get(filePath) as FileState | undefined;
+    `, filePath);
     
     return row || null;
   }
 
-  upsertFileState(state: Omit<FileState, 'createdAt' | 'updatedAt'>): void {
+  async upsertFileState(state: Omit<FileState, 'createdAt' | 'updatedAt'>): Promise<void> {
     const db = getDatabase();
     const now = Date.now();
     
-    db.prepare(`
+    await db.run(`
       INSERT INTO file_states (file_path, profile, last_modified, file_size, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT(file_path) DO UPDATE SET
@@ -39,7 +39,7 @@ export class FileStateRepository {
         last_modified = excluded.last_modified,
         file_size = excluded.file_size,
         updated_at = excluded.updated_at
-    `).run(
+    `,
       state.filePath,
       state.profile,
       state.lastModified,
@@ -49,14 +49,14 @@ export class FileStateRepository {
     );
   }
 
-  deleteFileState(filePath: string): void {
+  async deleteFileState(filePath: string): Promise<void> {
     const db = getDatabase();
-    db.prepare('DELETE FROM file_states WHERE file_path = ?').run(filePath);
+    await db.run('DELETE FROM file_states WHERE file_path = ?', filePath);
   }
 
-  getFileStatesByProfile(profile: string): FileState[] {
+  async getFileStatesByProfile(profile: string): Promise<FileState[]> {
     const db = getDatabase();
-    const rows = db.prepare(`
+    const rows = await db.all<FileState[]>(`
       SELECT 
         file_path as filePath,
         profile,
@@ -67,13 +67,13 @@ export class FileStateRepository {
       FROM file_states
       WHERE profile = ?
       ORDER BY updated_at DESC
-    `).all(profile) as FileState[];
+    `, profile);
     
     return rows;
   }
 
-  deleteFileStatesByProfile(profile: string): void {
+  async deleteFileStatesByProfile(profile: string): Promise<void> {
     const db = getDatabase();
-    db.prepare('DELETE FROM file_states WHERE profile = ?').run(profile);
+    await db.run('DELETE FROM file_states WHERE profile = ?', profile);
   }
 }

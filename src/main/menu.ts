@@ -23,27 +23,30 @@ export function createSystemTrayMenu(): Tray {
   return tray;
 }
 
-export function updateTrayMenu() {
+export async function updateTrayMenu() {
   if (!tray) return;
   
   const settings = new SettingsRepository();
   const profiles = store.get('profiles', []) as string[];
-  const isMuted = settings.getMuteAll();
+  const isMuted = await settings.getMuteAll();
   
   // Build profile menu items
-  const profileItems = profiles.map(profileName => ({
-    label: profileName,
-    type: 'checkbox' as const,
-    checked: settings.getProfileEnabled(profileName) && !isMuted,
-    enabled: !isMuted,
-    click: () => {
-      settings.setProfileEnabled(profileName, !settings.getProfileEnabled(profileName));
-      updateTrayMenu();
-      // Notify main process to update file monitoring
-      if (global.fileMonitor) {
-        global.fileMonitor.toggleProfile(profileName, settings.getProfileEnabled(profileName));
+  const profileItems = await Promise.all(profiles.map(async (profileName) => {
+    const isEnabled = await settings.getProfileEnabled(profileName);
+    return {
+      label: profileName,
+      type: 'checkbox' as const,
+      checked: isEnabled && !isMuted,
+      enabled: !isMuted,
+      click: async () => {
+        await settings.setProfileEnabled(profileName, !isEnabled);
+        await updateTrayMenu();
+        // Notify app coordinator to update profile state
+        if (global.appCoordinator) {
+          global.appCoordinator.toggleProfile(profileName, !isEnabled);
+        }
       }
-    }
+    };
   }));
   
   const contextMenu = Menu.buildFromTemplate([
@@ -53,12 +56,12 @@ export function updateTrayMenu() {
       label: 'Mute All',
       type: 'checkbox',
       checked: isMuted,
-      click: () => {
-        settings.setMuteAll(!isMuted);
-        updateTrayMenu();
-        // Notify main process to update mute state
-        if (global.fileMonitor) {
-          global.fileMonitor.toggleMute(!isMuted);
+      click: async () => {
+        await settings.setMuteAll(!isMuted);
+        await updateTrayMenu();
+        // Notify app coordinator to update mute state
+        if (global.appCoordinator) {
+          global.appCoordinator.toggleMute(!isMuted);
         }
       }
     },
@@ -95,5 +98,5 @@ export function updateTrayMenu() {
 
 // Add to global for access from main
 declare global {
-  var fileMonitor: any;
+  var appCoordinator: any;
 }

@@ -66,6 +66,20 @@ export class FileMonitor extends EventEmitter {
     this.profiles.clear();
   }
 
+  stopMonitoringProfile(profileId: string): void {
+    const keysToRemove: string[] = [];
+    
+    for (const [key, watcher] of this.watchers) {
+      if (key.startsWith(`${profileId}:`)) {
+        watcher.close();
+        keysToRemove.push(key);
+      }
+    }
+    
+    keysToRemove.forEach(key => this.watchers.delete(key));
+    this.profiles.delete(profileId);
+  }
+
   private async resolveWatchPath(watchPath: string): Promise<string[]> {
     if (watchPath.includes('*')) {
       const expandedPath = watchPath.replace(/^~/, process.env.HOME || '');

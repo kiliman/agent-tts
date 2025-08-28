@@ -7,15 +7,15 @@ export interface TTSLogRecord extends TTSLogEntry {
 }
 
 export class TTSLogRepository {
-  addEntry(entry: TTSLogEntry): number {
+  async addEntry(entry: TTSLogEntry): Promise<number> {
     const db = getDatabase();
-    const result = db.prepare(`
+    const result = await db.run(`
       INSERT INTO tts_log (
         timestamp, file_path, profile, original_text, filtered_text,
         status, tts_status, tts_message, elapsed_ms
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+    `,
       entry.timestamp,
       entry.filePath,
       entry.profile,
@@ -27,21 +27,21 @@ export class TTSLogRepository {
       entry.elapsed
     );
     
-    return result.lastInsertRowid as number;
+    return result.lastID || 0;
   }
 
-  updateStatus(id: number, status: 'queued' | 'played' | 'error', ttsStatus?: number, ttsMessage?: string): void {
+  async updateStatus(id: number, status: 'queued' | 'played' | 'error', ttsStatus?: number, ttsMessage?: string): Promise<void> {
     const db = getDatabase();
-    db.prepare(`
+    await db.run(`
       UPDATE tts_log
       SET status = ?, tts_status = ?, tts_message = ?
       WHERE id = ?
-    `).run(status, ttsStatus || null, ttsMessage || null, id);
+    `, status, ttsStatus || null, ttsMessage || null, id);
   }
 
-  getRecentEntries(limit: number = 50): TTSLogRecord[] {
+  async getRecentEntries(limit: number = 50): Promise<TTSLogRecord[]> {
     const db = getDatabase();
-    const rows = db.prepare(`
+    const rows = await db.all<TTSLogRecord[]>(`
       SELECT 
         id,
         timestamp,
@@ -57,14 +57,14 @@ export class TTSLogRepository {
       FROM tts_log
       ORDER BY timestamp DESC
       LIMIT ?
-    `).all(limit) as TTSLogRecord[];
+    `, limit);
     
     return rows;
   }
 
-  getEntriesByProfile(profile: string, limit: number = 50): TTSLogRecord[] {
+  async getEntriesByProfile(profile: string, limit: number = 50): Promise<TTSLogRecord[]> {
     const db = getDatabase();
-    const rows = db.prepare(`
+    const rows = await db.all<TTSLogRecord[]>(`
       SELECT 
         id,
         timestamp,
@@ -81,14 +81,14 @@ export class TTSLogRepository {
       WHERE profile = ?
       ORDER BY timestamp DESC
       LIMIT ?
-    `).all(profile, limit) as TTSLogRecord[];
+    `, profile, limit);
     
     return rows;
   }
 
-  getQueuedEntries(): TTSLogRecord[] {
+  async getEntriesByStatus(status: 'queued' | 'played' | 'error', limit: number = 50): Promise<TTSLogRecord[]> {
     const db = getDatabase();
-    const rows = db.prepare(`
+    const rows = await db.all<TTSLogRecord[]>(`
       SELECT 
         id,
         timestamp,
@@ -102,30 +102,31 @@ export class TTSLogRepository {
         elapsed_ms as elapsed,
         created_at as createdAt
       FROM tts_log
-      WHERE status = 'queued'
-      ORDER BY timestamp ASC
-    `).all() as TTSLogRecord[];
+      WHERE status = ?
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `, status, limit);
     
     return rows;
   }
 
-  getErrorCount(since?: number): number {
+  async getQueuedCount(): Promise<number> {
     const db = getDatabase();
-    let query = 'SELECT COUNT(*) as count FROM tts_log WHERE status = "error"';
-    const params: any[] = [];
+    const result = await db.get<{ count: number }>(`
+      SELECT COUNT(*) as count
+      FROM tts_log
+      WHERE status = 'queued'
+    `);
     
-    if (since) {
-      query += ' AND timestamp > ?';
-      params.push(since);
-    }
-    
-    const result = db.prepare(query).get(...params) as { count: number };
-    return result.count;
+    return result?.count || 0;
   }
 
-  clearOldEntries(beforeTimestamp: number): number {
+  async clearOldEntries(daysToKeep: number = 7): Promise<void> {
     const db = getDatabase();
-    const result = db.prepare('DELETE FROM tts_log WHERE timestamp < ?').run(beforeTimestamp);
-    return result.changes;
+    const cutoffTime = Date.now() - (daysToKeep * 24 * 60 * 60 * 1000);
+    await db.run(`
+      DELETE FROM tts_log
+      WHERE timestamp < ?
+    `, cutoffTime);
   }
 }

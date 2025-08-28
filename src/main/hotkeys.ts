@@ -1,15 +1,15 @@
 import { globalShortcut } from 'electron';
 import { SettingsRepository } from '../database/settings';
 
-export function registerGlobalHotkeys() {
+export async function registerGlobalHotkeys() {
   const settings = new SettingsRepository();
-  const hotkey = settings.getGlobalHotkey();
+  const hotkey = await settings.getGlobalHotkey();
   
   // Register stop TTS playback hotkey
   const registered = globalShortcut.register(hotkey, () => {
-    // Emit stop event to TTS queue (will be implemented in Phase 2)
-    if (global.ttsQueue) {
-      global.ttsQueue.stopCurrent();
+    // Stop TTS playback through app coordinator
+    if (global.appCoordinator) {
+      global.appCoordinator.stopTTS();
     }
   });
   
@@ -18,19 +18,19 @@ export function registerGlobalHotkeys() {
   }
 }
 
-export function updateGlobalHotkey(newHotkey: string) {
+export async function updateGlobalHotkey(newHotkey: string) {
   // Unregister all hotkeys
   globalShortcut.unregisterAll();
   
   // Save new hotkey
   const settings = new SettingsRepository();
-  settings.setGlobalHotkey(newHotkey);
+  await settings.setGlobalHotkey(newHotkey);
   
   // Re-register with new hotkey
-  registerGlobalHotkeys();
+  await registerGlobalHotkeys();
 }
 
 // Add to global for access
 declare global {
-  var ttsQueue: any;
+  var appCoordinator: any;
 }

@@ -3,7 +3,9 @@
   "compilerOptions": {
     "module": "CommonJS",
     "noEmit": false,
-    "outDir": "./dist/main"
+    "outDir": "./dist",
+    "rootDir": "./src"
   },
-  "include": ["src/main/**/*", "src/shared/**/*", "global.d.ts"]
+  "include": ["src/**/*"],
+  "exclude": ["src/renderer/**/*", "src/**/*.test.ts", "test/**/*"]
 }

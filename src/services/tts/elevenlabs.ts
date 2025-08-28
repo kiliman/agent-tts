@@ -32,14 +32,15 @@ export class ElevenLabsTTSService extends BaseTTSService {
     try {
       const audioStream = await this.client.textToSpeech.convert(this.voiceId, {
         text,
-        model_id: this.model,
-        output_format: 'mp3_44100_128',
-        voice_settings: {
+        modelId: this.model,
+        outputFormat: 'mp3_44100_128',
+        voiceSettings: {
           stability: this.stability,
-          similarity_boost: this.similarityBoost
+          similarityBoost: this.similarityBoost
         }
       });
       
+      // Play the audio stream directly
       await play(audioStream);
     } catch (error) {
       console.error('ElevenLabs TTS Error:', error);

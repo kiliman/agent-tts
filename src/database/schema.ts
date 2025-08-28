@@ -1,11 +1,12 @@
-import Database from 'better-sqlite3';
+import { Database } from 'sqlite3';
+import { open, Database as SqliteDatabase } from 'sqlite';
 import path from 'path';
 import { app } from 'electron';
 import fs from 'fs';
 
-let db: Database.Database | null = null;
+let db: SqliteDatabase | null = null;
 
-export async function initializeDatabase(): Promise<Database.Database> {
+export async function initializeDatabase(): Promise<SqliteDatabase> {
   const userDataPath = app.getPath('userData');
   const dbPath = path.join(userDataPath, 'agent-tts.db');
   
@@ -14,22 +15,25 @@ export async function initializeDatabase(): Promise<Database.Database> {
     fs.mkdirSync(userDataPath, { recursive: true });
   }
 
-  db = new Database(dbPath);
+  db = await open({
+    filename: dbPath,
+    driver: Database
+  });
   
   // Enable foreign keys
-  db.exec('PRAGMA foreign_keys = ON;');
+  await db.exec('PRAGMA foreign_keys = ON;');
   
   // Create tables
-  createTables();
+  await createTables();
   
   return db;
 }
 
-function createTables() {
+async function createTables() {
   if (!db) throw new Error('Database not initialized');
 
   // File states table - track last processed position for each file
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS file_states (
       file_path TEXT PRIMARY KEY,
       profile TEXT NOT NULL,
@@ -43,7 +47,7 @@ function createTables() {
   `);
 
   // TTS log table - log all TTS operations
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS tts_log (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       timestamp INTEGER NOT NULL,
@@ -64,7 +68,7 @@ function createTables() {
   `);
 
   // App settings table - store persistent settings
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS app_settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL,
@@ -73,7 +77,7 @@ function createTables() {
   `);
 
   // Add trigger to update updated_at on file_states
-  db.exec(`
+  await db.exec(`
     CREATE TRIGGER IF NOT EXISTS update_file_states_timestamp
     AFTER UPDATE ON file_states
     BEGIN
@@ -82,7 +86,7 @@ function createTables() {
   `);
 
   // Add trigger to update updated_at on app_settings
-  db.exec(`
+  await db.exec(`
     CREATE TRIGGER IF NOT EXISTS update_app_settings_timestamp
     AFTER UPDATE ON app_settings
     BEGIN
@@ -91,16 +95,16 @@ function createTables() {
   `);
 }
 
-export function getDatabase(): Database.Database {
+export function getDatabase(): SqliteDatabase {
   if (!db) {
     throw new Error('Database not initialized. Call initializeDatabase() first.');
   }
   return db;
 }
 
-export function closeDatabase() {
+export async function closeDatabase() {
   if (db) {
-    db.close();
+    await db.close();
     db = null;
   }
 }

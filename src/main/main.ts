@@ -2,7 +2,8 @@ import { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain } from 'electro
 import path from 'path';
 import { initializeDatabase } from '../database/schema';
 import { ConfigLoader } from '../config/loader';
-import { FileMonitor } from '../monitoring/file-watcher';
+import type { AgentTTSConfig } from '../types/config';
+import { AppCoordinator } from '../services/app-coordinator';
 import { createSystemTrayMenu } from './menu';
 import { registerGlobalHotkeys } from './hotkeys';
 import Store from 'electron-store';
@@ -10,10 +11,10 @@ import Store from 'electron-store';
 export let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let configLoader: ConfigLoader | null = null;
-let fileMonitor: FileMonitor | null = null;
+let appCoordinator: AppCoordinator | null = null;
 
-// Make fileMonitor available globally for menu
-global.fileMonitor = null;
+// Make coordinator available globally for menu and hotkeys
+global.appCoordinator = null;
 
 const store = new Store();
 const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -47,6 +48,10 @@ async function initializeApp() {
     // Initialize database
     await initializeDatabase();
 
+    // Initialize app coordinator
+    appCoordinator = new AppCoordinator();
+    global.appCoordinator = appCoordinator;
+
     // Load configuration
     configLoader = new ConfigLoader();
     const config = await configLoader.load();
@@ -78,19 +83,13 @@ async function initializeApp() {
       return;
     }
 
-    // Start file monitoring
-    fileMonitor = new FileMonitor(config);
-    global.fileMonitor = fileMonitor;
-    await fileMonitor.start();
+    // Initialize the app coordinator with config
+    await appCoordinator.initialize(config);
 
     // Set up configuration hot-reload
     configLoader.on('configChanged', async (newConfig) => {
-      if (fileMonitor) {
-        await fileMonitor.stop();
-        await fileMonitor.waitForPlaybackCompletion();
-        fileMonitor = new FileMonitor(newConfig);
-        global.fileMonitor = fileMonitor;
-        await fileMonitor.start();
+      if (appCoordinator) {
+        await appCoordinator.updateConfig(newConfig);
       }
     });
 
@@ -133,8 +132,8 @@ app.on('before-quit', async () => {
   if (configLoader) {
     configLoader.stopWatching();
   }
-  if (fileMonitor) {
-    await fileMonitor.stop();
+  if (appCoordinator) {
+    await appCoordinator.shutdown();
   }
   globalShortcut.unregisterAll();
 });
