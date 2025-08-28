@@ -190,20 +190,31 @@ src/
 
 ## Key Questions for Clarification
 
-1. **Default parsers**: What should the built-in Claude Code and OpenCode parsers look for? Specific message patterns, JSON structures, or plain text extraction?
+1. **Default parsers**: Claude Code uses JSONL formatted files. Use JSON.parse for each line. We are primarily interested in entries with messages from the assistant.
 
-2. **Built-in filters**: Besides code stripping and pronunciation rules, what other common text transformations should be included by default?
+2. **Built-in filters**: Use the existing `example/tts-processor.ts` as a roadmap. Key filters include:
+   - JSON/XML content filtering
+   - Code block removal (``` and `)
+   - Markdown formatting removal  
+   - Tool results and system reminders removal
+   - File path simplification
+   - Symbol replacement (===, !=, etc.)
+   - Whitespace cleanup
+   - Pronunciation fixes (git → ghit, etc.)
 
-3. **Profile icons**: How should profile icons be configured? File paths, built-in icons, or generated from profile names?
+3. **Profile icons**: Add `iconPath` to ProfileConfig - any image (PNG, JPEG, SVG) relative to config directory.
 
-4. **TTS services**: Should we plan for multiple TTS service implementations beyond ElevenLabs (Azure, AWS Polly, etc.)?
+4. **TTS services**: Support multiple TTS APIs with extensible design, focus on ElevenLabs first.
 
-5. **Configuration validation**: How strict should config validation be? Should invalid configs prevent startup or just disable affected profiles?
+5. **Configuration validation**: 
+   - Startup errors: Show error window, don't start watchers until config loads successfully
+   - Hot-reload errors: Show detailed error, continue with current config until new config loads
+   - Config changes: Stop watchers, wait for playback to finish, reinitialize
 
-6. **File patterns**: Are there specific file extensions or naming patterns we should expect for agent logs beyond just configurable glob patterns?
+6. **File patterns**: Use chokidar globs as configured in profiles.
 
-7. **Audio format**: Any preferences for audio format/quality from TTS services? Should we cache audio files or always stream?
+7. **Audio format**: Default to `mp3_44100_128`, make `outputFormat` part of TTSServiceConfig. Stream audio (no caching).
 
-8. **Error recovery**: When TTS fails, should we retry, skip, or queue for later? Should failed messages appear in the UI?
+8. **Error recovery**: Show errors in UI to distinguish app errors from network/service issues. Log all failures with details.
 
 This plan provides a comprehensive roadmap while remaining flexible for adjustments based on your feedback and requirements clarification.

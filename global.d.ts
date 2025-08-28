@@ -30,6 +30,7 @@ export type TTSParserFunction = (text: string) => string[];
 export interface TTSServiceConfig {
   name: string; // e.g., "elevenlabs"
   parser: TTSParserFunction; // function to parse log text into individual messages for TTS
+  outputFormat?: string; // e.g., "mp3_44100_128"
   voice: {
     id: string;
     model: string;
@@ -40,6 +41,7 @@ export interface TTSServiceConfig {
 
 export interface ProfileConfig {
   name: string; // profile name
+  iconPath?: string; // path to profile icon (PNG, JPEG, SVG) relative to config directory
   watch: string[]; // chokidar patterns to watch files
   exclude?: string[]; // Optional patterns to exclude files
   tts: TTSServiceConfig; // TTS service configuration
