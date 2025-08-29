@@ -81,7 +81,7 @@ export function LogViewer({ logs, onRefresh }: LogViewerProps) {
         {logs.length === 0 ? (
           <div className="empty-state">No log entries yet</div>
         ) : (
-          logs.map((log) => (
+          [...logs].reverse().map((log) => (
             <div key={log.id} className={`log-entry ${log.status}`}>
               <div className="log-entry-header">
                 <span className="status-icon">{getStatusIcon(log.status)}</span>

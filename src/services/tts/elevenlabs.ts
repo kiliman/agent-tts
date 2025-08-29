@@ -17,6 +17,8 @@ export class ElevenLabsTTSService extends BaseTTSService {
     this.stability = config.options?.stability || 0.5;
     this.similarityBoost = config.options?.similarityBoost || 0.75;
     
+    console.log(`[ElevenLabs] Initializing with voice ID: ${this.voiceId}, model: ${this.model}`);
+    
     if (this.apiKey) {
       this.client = new ElevenLabsClient({
         apiKey: this.apiKey
@@ -27,6 +29,13 @@ export class ElevenLabsTTSService extends BaseTTSService {
   async tts(text: string): Promise<void> {
     if (!this.client) {
       throw new Error('ElevenLabs client not initialized. Please provide an API key.');
+    }
+    
+    console.log(`[ElevenLabs] Converting text to speech - Voice: ${this.voiceId}, Length: ${text.length} chars`);
+    if (text.length > 100) {
+      console.log(`[ElevenLabs] Text preview: ${text.substring(0, 100)}...`);
+    } else {
+      console.log(`[ElevenLabs] Full text: ${text}`);
     }
     
     try {
@@ -43,8 +52,32 @@ export class ElevenLabsTTSService extends BaseTTSService {
       // Convert ReadableStream to an async iterable
       const audioIterable = this.streamToAsyncIterable(audioStream);
       await play(audioIterable);
-    } catch (error) {
-      console.error('ElevenLabs TTS Error:', error);
+    } catch (error: any) {
+      console.error('[ElevenLabs] TTS Error:', error);
+      
+      // Log more details about the error
+      if (error.response) {
+        console.error('[ElevenLabs] Response status:', error.response.status);
+        console.error('[ElevenLabs] Response data:', error.response.data);
+        
+        // Check for rate limiting
+        if (error.response.status === 429) {
+          console.error('[ElevenLabs] RATE LIMITED - Too many requests');
+          const retryAfter = error.response.headers?.['retry-after'];
+          if (retryAfter) {
+            console.error(`[ElevenLabs] Retry after: ${retryAfter} seconds`);
+          }
+        } else if (error.response.status === 401) {
+          console.error('[ElevenLabs] UNAUTHORIZED - Check API key');
+        } else if (error.response.status === 400) {
+          console.error('[ElevenLabs] BAD REQUEST - Check text length or format');
+        }
+      }
+      
+      if (error.message) {
+        console.error('[ElevenLabs] Error message:', error.message);
+      }
+      
       throw error;
     }
   }

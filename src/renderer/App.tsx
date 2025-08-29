@@ -33,6 +33,7 @@ export function App() {
       
       // Listen for TTS updates
       window.electronAPI.onTTSUpdate((data: any) => {
+        console.log('[Renderer] Received TTS update:', data);
         loadLogs();
       });
     }
@@ -40,7 +41,9 @@ export function App() {
 
   const loadLogs = async () => {
     if (window.electronAPI) {
+      console.log('[Renderer] Loading logs...');
       const fetchedLogs = await window.electronAPI.getLogs(50);
+      console.log('[Renderer] Fetched logs:', fetchedLogs.length);
       setLogs(fetchedLogs);
     }
   };

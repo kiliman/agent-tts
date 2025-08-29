@@ -134,6 +134,12 @@ export class TTSQueueProcessor extends EventEmitter {
     this.queue = [];
   }
   
+  clearCachedServices(): void {
+    // Clear all cached TTS service instances to force recreation with new config
+    this.ttsServices.clear();
+    console.log('[TTSQueue] Cleared all cached TTS services');
+  }
+  
   getQueueLength(): number {
     return this.queue.length;
   }

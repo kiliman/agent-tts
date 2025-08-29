@@ -31,11 +31,15 @@ export class FileMonitor extends EventEmitter {
       if (!profile.enabled) continue;
       
       this.profiles.set(profile.id, profile);
+      console.log(`Processing profile: ${profile.id} with ${profile.watchPaths.length} watch paths`);
 
       for (const watchPath of profile.watchPaths) {
+        console.log(`  Resolving watch path: ${watchPath}`);
         const files = await this.resolveWatchPath(watchPath);
+        console.log(`  Found ${files.length} files`);
         
         for (const file of files) {
+          console.log(`    Watching file: ${file}`);
           await this.initializeFileState(file);
           
           const watcher = watch(file, {
@@ -47,8 +51,17 @@ export class FileMonitor extends EventEmitter {
             }
           });
 
-          watcher.on('change', () => this.handleFileChange(file, profile));
-          watcher.on('add', () => this.handleFileChange(file, profile));
+          watcher.on('change', (path) => {
+            console.log(`[FileMonitor] Change detected in: ${path}`);
+            this.handleFileChange(file, profile);
+          });
+          watcher.on('add', (path) => {
+            console.log(`[FileMonitor] File added: ${path}`);
+            this.handleFileChange(file, profile);
+          });
+          watcher.on('error', (error) => {
+            console.error(`[FileMonitor] Watcher error for ${file}:`, error);
+          });
           
           this.watchers.set(`${profile.id}:${file}`, watcher);
         }
@@ -101,6 +114,7 @@ export class FileMonitor extends EventEmitter {
     const existingState = await this.database.getFileState(filepath);
 
     if (!existingState) {
+      // On first run, set offset to current file size to avoid replaying old messages
       const state: FileState = {
         filepath,
         lastModified: stats.mtimeMs,
@@ -108,22 +122,44 @@ export class FileMonitor extends EventEmitter {
         lastProcessedOffset: stats.size
       };
       await this.database.updateFileState(state);
+      console.log(`[FileMonitor] Initialized state for ${filepath} at offset ${stats.size} (skipping existing content)`);
+    } else if (existingState.lastProcessedOffset > stats.size) {
+      // File was truncated, reset offset
+      const state: FileState = {
+        filepath,
+        lastModified: stats.mtimeMs,
+        fileSize: stats.size,
+        lastProcessedOffset: 0
+      };
+      await this.database.updateFileState(state);
+      console.log(`[FileMonitor] File ${filepath} was truncated, reset offset to 0`);
     }
   }
 
   private async handleFileChange(filepath: string, profile: ProfileConfig): Promise<void> {
-    if (!existsSync(filepath)) return;
-
-    const stats = statSync(filepath);
-    const fileState = await this.database.getFileState(filepath);
+    console.log(`[FileMonitor] Processing change for: ${filepath} (profile: ${profile.id})`);
     
-    if (!fileState) {
-      await this.initializeFileState(filepath);
+    if (!existsSync(filepath)) {
+      console.log(`[FileMonitor] File no longer exists: ${filepath}`);
       return;
     }
 
+    const stats = statSync(filepath);
+    console.log(`[FileMonitor] File stats - size: ${stats.size}, mtime: ${new Date(stats.mtimeMs).toISOString()}`);
+    
+    const fileState = await this.database.getFileState(filepath);
+    
+    if (!fileState) {
+      console.log(`[FileMonitor] No previous state found, initializing...`);
+      await this.initializeFileState(filepath);
+      return;
+    }
+    
+    console.log(`[FileMonitor] Previous state - size: ${fileState.fileSize}, offset: ${fileState.lastProcessedOffset}`);
+
     if (stats.size <= fileState.lastProcessedOffset) {
       if (stats.size < fileState.lastProcessedOffset) {
+        console.log(`[FileMonitor] File truncated, resetting offset from ${fileState.lastProcessedOffset} to 0`);
         const newState: FileState = {
           filepath,
           lastModified: stats.mtimeMs,
@@ -132,13 +168,19 @@ export class FileMonitor extends EventEmitter {
         };
         await this.database.updateFileState(newState);
         await this.handleFileChange(filepath, profile);
+      } else {
+        console.log(`[FileMonitor] No new content (size: ${stats.size} <= offset: ${fileState.lastProcessedOffset})`);
       }
       return;
     }
 
+    const bytesToRead = stats.size - fileState.lastProcessedOffset;
+    console.log(`[FileMonitor] Reading ${bytesToRead} new bytes from offset ${fileState.lastProcessedOffset}`);
+    
     const newContent = this.readFileFromOffset(filepath, fileState.lastProcessedOffset);
     
     if (newContent.trim()) {
+      console.log(`[FileMonitor] Found new content (${newContent.length} chars), adding to queue`);
       const change: FileChange = {
         filepath,
         profile,
@@ -147,7 +189,10 @@ export class FileMonitor extends EventEmitter {
       };
 
       this.changeQueue.push(change);
+      console.log(`[FileMonitor] Queue size: ${this.changeQueue.length}`);
       this.processQueue();
+    } else {
+      console.log(`[FileMonitor] New content is empty/whitespace only`);
     }
 
     const newState: FileState = {
@@ -170,22 +215,30 @@ export class FileMonitor extends EventEmitter {
   }
 
   private async processQueue(): Promise<void> {
-    if (this.isProcessing || this.changeQueue.length === 0) return;
+    if (this.isProcessing || this.changeQueue.length === 0) {
+      if (this.isProcessing) {
+        console.log(`[FileMonitor] Already processing queue`);
+      }
+      return;
+    }
 
     this.isProcessing = true;
+    console.log(`[FileMonitor] Processing queue with ${this.changeQueue.length} items`);
 
     while (this.changeQueue.length > 0) {
       const change = this.changeQueue.shift();
       if (!change) continue;
 
       try {
+        console.log(`[FileMonitor] Emitting fileChanged event for ${change.filepath}`);
         this.emit('fileChanged', change);
       } catch (error) {
-        console.error(`Error processing file change for ${change.filepath}:`, error);
+        console.error(`[FileMonitor] Error processing file change for ${change.filepath}:`, error);
       }
     }
 
     this.isProcessing = false;
+    console.log(`[FileMonitor] Queue processing complete`);
   }
 
   updateProfiles(profiles: ProfileConfig[]): void {

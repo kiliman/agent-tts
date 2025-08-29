@@ -10,9 +10,9 @@ export class TTSLogRepository {
   async addEntry(entry: TTSLogEntry): Promise<number> {
     const db = getDatabase();
     const result = await db.run(`
-      INSERT INTO tts_log (
-        timestamp, file_path, profile, original_text, filtered_text,
-        status, tts_status, tts_message, elapsed_ms
+      INSERT INTO tts_queue (
+        timestamp, filename, profile, original_text, filtered_text,
+        state, api_response_status, api_response_message, processing_time
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
@@ -33,8 +33,8 @@ export class TTSLogRepository {
   async updateStatus(id: number, status: 'queued' | 'played' | 'error', ttsStatus?: number, ttsMessage?: string): Promise<void> {
     const db = getDatabase();
     await db.run(`
-      UPDATE tts_log
-      SET status = ?, tts_status = ?, tts_message = ?
+      UPDATE tts_queue
+      SET state = ?, api_response_status = ?, api_response_message = ?
       WHERE id = ?
     `, status, ttsStatus || null, ttsMessage || null, id);
   }
@@ -45,16 +45,16 @@ export class TTSLogRepository {
       SELECT 
         id,
         timestamp,
-        file_path as filePath,
+        filename as filePath,
         profile,
         original_text as originalText,
         filtered_text as filteredText,
-        status,
-        tts_status as ttsStatus,
-        tts_message as ttsMessage,
-        elapsed_ms as elapsed,
+        state as status,
+        api_response_status as ttsStatus,
+        api_response_message as ttsMessage,
+        processing_time as elapsed,
         created_at as createdAt
-      FROM tts_log
+      FROM tts_queue
       ORDER BY timestamp DESC
       LIMIT ?
     `, limit);
@@ -68,16 +68,16 @@ export class TTSLogRepository {
       SELECT 
         id,
         timestamp,
-        file_path as filePath,
+        filename as filePath,
         profile,
         original_text as originalText,
         filtered_text as filteredText,
-        status,
-        tts_status as ttsStatus,
-        tts_message as ttsMessage,
-        elapsed_ms as elapsed,
+        state as status,
+        api_response_status as ttsStatus,
+        api_response_message as ttsMessage,
+        processing_time as elapsed,
         created_at as createdAt
-      FROM tts_log
+      FROM tts_queue
       WHERE profile = ?
       ORDER BY timestamp DESC
       LIMIT ?
@@ -92,16 +92,16 @@ export class TTSLogRepository {
       SELECT 
         id,
         timestamp,
-        file_path as filePath,
+        filename as filePath,
         profile,
         original_text as originalText,
         filtered_text as filteredText,
-        status,
-        tts_status as ttsStatus,
-        tts_message as ttsMessage,
-        elapsed_ms as elapsed,
+        state as status,
+        api_response_status as ttsStatus,
+        api_response_message as ttsMessage,
+        processing_time as elapsed,
         created_at as createdAt
-      FROM tts_log
+      FROM tts_queue
       WHERE status = ?
       ORDER BY timestamp DESC
       LIMIT ?
@@ -114,8 +114,8 @@ export class TTSLogRepository {
     const db = getDatabase();
     const result = await db.get<{ count: number }>(`
       SELECT COUNT(*) as count
-      FROM tts_log
-      WHERE status = 'queued'
+      FROM tts_queue
+      WHERE state = 'queued'
     `);
     
     return result?.count || 0;
@@ -125,7 +125,7 @@ export class TTSLogRepository {
     const db = getDatabase();
     const cutoffTime = Date.now() - (daysToKeep * 24 * 60 * 60 * 1000);
     await db.run(`
-      DELETE FROM tts_log
+      DELETE FROM tts_queue
       WHERE timestamp < ?
     `, cutoffTime);
   }

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain } from 'electron';
+import { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, dialog } from 'electron';
 import path from 'path';
 import { initializeDatabase } from '../database/schema';
 import { ConfigLoader } from '../config/loader';
@@ -19,6 +19,26 @@ global.appCoordinator = null;
 const store = new Store();
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
+// Request single instance lock
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  // Another instance is already running
+  console.log('Another instance of Agent TTS is already running. Exiting...');
+  app.quit();
+} else {
+  // Handle when another instance tries to run
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    console.log('Another instance tried to start. Focusing existing instance.');
+    // If we have a window, show and focus it
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+      mainWindow.show();
+    }
+  });
+}
+
 export async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 900,
@@ -32,8 +52,9 @@ export async function createWindow() {
   });
 
   if (isDevelopment) {
-    mainWindow.loadURL('http://localhost:3000');
-    // mainWindow.webContents.openDevTools(); // Commented out for cleaner development
+    // In development, we'll load the built file for now
+    // To use hot reload, run: npm run dev:renderer separately
+    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
   } else {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
   }
@@ -41,6 +62,21 @@ export async function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+
+  // Register keyboard shortcut to open DevTools
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.meta && input.shift && input.key.toLowerCase() === 'i' || 
+        input.control && input.shift && input.key.toLowerCase() === 'i') {
+      if (mainWindow) {
+        mainWindow.webContents.toggleDevTools();
+      }
+    }
+  });
+
+  // Open DevTools in development mode
+  if (isDevelopment) {
+    mainWindow.webContents.openDevTools();
+  }
 }
 
 async function initializeApp() {
@@ -85,6 +121,28 @@ async function initializeApp() {
 
     // Initialize the app coordinator with config
     await appCoordinator.initialize(config);
+    
+    // Forward TTS events to renderer
+    appCoordinator.on('ttsPlaying', (message) => {
+      console.log('[Main] Forwarding ttsPlaying to renderer, mainWindow exists:', !!mainWindow);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('tts-update', { type: 'playing', message });
+      }
+    });
+    
+    appCoordinator.on('ttsPlayed', (message) => {
+      console.log('[Main] Forwarding ttsPlayed to renderer, mainWindow exists:', !!mainWindow);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('tts-update', { type: 'played', message });
+      }
+    });
+    
+    appCoordinator.on('ttsError', ({ message, error }) => {
+      console.log('[Main] Forwarding ttsError to renderer, mainWindow exists:', !!mainWindow);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('tts-update', { type: 'error', message, error });
+      }
+    });
 
     // Set up configuration hot-reload
     configLoader.on('configChanged', async (newConfig) => {
@@ -109,7 +167,9 @@ async function initializeApp() {
   }
 }
 
-app.whenReady().then(async () => {
+// Only proceed with app initialization if we got the lock
+if (gotTheLock) {
+  app.whenReady().then(async () => {
   // Initialize the application first (includes database)
   await initializeApp();
   
@@ -123,7 +183,8 @@ app.whenReady().then(async () => {
   if (!mainWindow) {
     createWindow();
   }
-});
+  });
+}
 
 app.on('window-all-closed', () => {
   // Don't quit on macOS when all windows are closed (keep in tray)
@@ -145,8 +206,30 @@ app.on('before-quit', async () => {
 
 // IPC handlers for renderer communication
 ipcMain.handle('get-logs', async (event, limit = 50) => {
-  // This will be implemented in the database module
-  return [];
+  if (!appCoordinator) {
+    return [];
+  }
+  
+  // Access the database through the app coordinator
+  const database = (appCoordinator as any).database;
+  if (!database) {
+    return [];
+  }
+  
+  await database.waitForInit();
+  const logs = await database.getRecentEntries(limit);
+  return logs.map((entry: any) => ({
+    id: entry.id,
+    timestamp: entry.timestamp.getTime(),
+    filePath: entry.filename,
+    profile: entry.profile,
+    originalText: entry.originalText,
+    filteredText: entry.filteredText,
+    status: entry.state,
+    ttsStatus: entry.apiResponseStatus,
+    ttsMessage: entry.apiResponseMessage,
+    elapsed: entry.processingTime
+  }));
 });
 
 ipcMain.handle('show-log-window', () => {

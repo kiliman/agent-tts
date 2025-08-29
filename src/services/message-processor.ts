@@ -15,23 +15,42 @@ export class MessageProcessor extends EventEmitter {
 
   async processFileChange(change: FileChange): Promise<void> {
     const { profile, content, filepath } = change;
+    
+    console.log(`[MessageProcessor] Processing change for ${filepath}`);
+    console.log(`[MessageProcessor] Content length: ${content.length} chars`);
 
-    if (!content.trim()) return;
+    if (!content.trim()) {
+      console.log(`[MessageProcessor] Content is empty/whitespace, skipping`);
+      return;
+    }
 
     try {
       const parser = ParserFactory.createParser(profile.parser);
+      console.log(`[MessageProcessor] Using parser: ${profile.parser.type}`);
+      
       const messages = parser.parse(content);
+      console.log(`[MessageProcessor] Parser returned ${messages.length} messages`);
 
-      if (messages.length === 0) return;
+      if (messages.length === 0) {
+        console.log(`[MessageProcessor] No messages parsed, skipping`);
+        return;
+      }
 
       const filterChain = new FilterChain(profile.filters || []);
 
-      for (const message of messages) {
+      for (let i = 0; i < messages.length; i++) {
+        const message = messages[i];
+        console.log(`[MessageProcessor] Processing message ${i + 1}/${messages.length}`);
+        console.log(`[MessageProcessor] Original: ${message.content.substring(0, 100)}${message.content.length > 100 ? '...' : ''}`);
+        
         const filteredMessage = filterChain.apply(message);
         
         if (!filteredMessage || !filteredMessage.content.trim()) {
+          console.log(`[MessageProcessor] Message filtered out or empty after filtering`);
           continue;
         }
+        
+        console.log(`[MessageProcessor] Filtered: ${filteredMessage.content.substring(0, 100)}${filteredMessage.content.length > 100 ? '...' : ''}`);
 
         const entry: Omit<TTSQueueEntry, 'id'> = {
           timestamp: message.timestamp || new Date(),

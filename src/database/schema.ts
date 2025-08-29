@@ -1,13 +1,14 @@
 import { Database } from 'sqlite3';
 import { open, Database as SqliteDatabase } from 'sqlite';
 import path from 'path';
-import { app } from 'electron';
 import fs from 'fs';
+import os from 'os';
 
 let db: SqliteDatabase | null = null;
 
 export async function initializeDatabase(): Promise<SqliteDatabase> {
-  const userDataPath = app.getPath('userData');
+  // Use ~/.agent-tts directory for consistency
+  const userDataPath = path.join(os.homedir(), '.agent-tts');
   const dbPath = path.join(userDataPath, 'agent-tts.db');
   
   // Ensure directory exists
@@ -35,36 +36,33 @@ async function createTables() {
   // File states table - track last processed position for each file
   await db.exec(`
     CREATE TABLE IF NOT EXISTS file_states (
-      file_path TEXT PRIMARY KEY,
-      profile TEXT NOT NULL,
+      filepath TEXT PRIMARY KEY,
       last_modified INTEGER NOT NULL,
       file_size INTEGER NOT NULL,
-      created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000),
-      updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
+      last_processed_offset INTEGER NOT NULL,
+      updated_at INTEGER DEFAULT (unixepoch())
     );
-    
-    CREATE INDEX IF NOT EXISTS idx_file_states_profile ON file_states(profile);
   `);
 
-  // TTS log table - log all TTS operations
+  // TTS queue table - log all TTS operations (matching existing schema)
   await db.exec(`
-    CREATE TABLE IF NOT EXISTS tts_log (
+    CREATE TABLE IF NOT EXISTS tts_queue (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       timestamp INTEGER NOT NULL,
-      file_path TEXT NOT NULL,
+      filename TEXT NOT NULL,
       profile TEXT NOT NULL,
       original_text TEXT NOT NULL,
       filtered_text TEXT NOT NULL,
-      status TEXT NOT NULL CHECK (status IN ('queued', 'played', 'error')),
-      tts_status INTEGER,
-      tts_message TEXT,
-      elapsed_ms INTEGER,
-      created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
+      state TEXT CHECK(state IN ('queued', 'playing', 'played', 'error')) NOT NULL,
+      api_response_status INTEGER,
+      api_response_message TEXT,
+      processing_time INTEGER,
+      created_at INTEGER DEFAULT (unixepoch())
     );
     
-    CREATE INDEX IF NOT EXISTS idx_tts_log_timestamp ON tts_log(timestamp DESC);
-    CREATE INDEX IF NOT EXISTS idx_tts_log_profile ON tts_log(profile);
-    CREATE INDEX IF NOT EXISTS idx_tts_log_status ON tts_log(status);
+    CREATE INDEX IF NOT EXISTS idx_tts_queue_state ON tts_queue(state);
+    CREATE INDEX IF NOT EXISTS idx_tts_queue_timestamp ON tts_queue(timestamp DESC);
+    CREATE INDEX IF NOT EXISTS idx_tts_queue_profile ON tts_queue(profile);
   `);
 
   // App settings table - store persistent settings
@@ -81,7 +79,7 @@ async function createTables() {
     CREATE TRIGGER IF NOT EXISTS update_file_states_timestamp
     AFTER UPDATE ON file_states
     BEGIN
-      UPDATE file_states SET updated_at = (strftime('%s', 'now') * 1000) WHERE file_path = NEW.file_path;
+      UPDATE file_states SET updated_at = unixepoch() WHERE filepath = NEW.filepath;
     END;
   `);
 

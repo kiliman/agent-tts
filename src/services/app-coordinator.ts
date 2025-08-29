@@ -10,7 +10,7 @@ import { SettingsRepository } from '../database/settings';
  * Coordinates all the services in the application
  */
 export class AppCoordinator extends EventEmitter {
-  private database: DatabaseManager;
+  public database: DatabaseManager;
   private fileMonitor: FileMonitor;
   private messageProcessor: MessageProcessor;
   private ttsQueue: TTSQueueProcessor;
@@ -31,36 +31,51 @@ export class AppCoordinator extends EventEmitter {
   private setupEventHandlers(): void {
     // Handle file changes
     this.fileMonitor.on('fileChanged', async (change) => {
+      console.log(`[AppCoordinator] Received fileChanged event for: ${change.filepath}`);
+      console.log(`[AppCoordinator] Profile: ${change.profile.id}, Content length: ${change.content.length}`);
       await this.messageProcessor.processFileChange(change);
     });
     
     // Handle processed messages ready for TTS
     this.messageProcessor.on('messageQueued', async (message: QueuedMessage) => {
+      console.log(`[AppCoordinator] Message queued for TTS from profile: ${message.profile}`);
+      console.log(`[AppCoordinator] Text: ${message.filteredText.substring(0, 100)}${message.filteredText.length > 100 ? '...' : ''}`);
+      
       // Check if profile is enabled and not muted
-      if (await this.isProfileEnabled(message.profile)) {
+      const isEnabled = await this.isProfileEnabled(message.profile);
+      console.log(`[AppCoordinator] Profile ${message.profile} enabled: ${isEnabled}`);
+      
+      if (isEnabled) {
         this.ttsQueue.addToQueue(message);
+      } else {
+        console.log(`[AppCoordinator] Skipping message - profile disabled`);
       }
     });
     
     // Handle TTS events
     this.ttsQueue.on('playing', (message) => {
+      console.log(`[AppCoordinator] TTS playing: ${message.filteredText.substring(0, 50)}...`);
       this.emit('ttsPlaying', message);
     });
     
     this.ttsQueue.on('played', (message) => {
+      console.log(`[AppCoordinator] TTS played successfully`);
       this.emit('ttsPlayed', message);
     });
     
     this.ttsQueue.on('error', ({ message, error }) => {
+      console.error(`[AppCoordinator] TTS error:`, error);
       this.emit('ttsError', { message, error });
     });
     
     // Handle errors
     this.fileMonitor.on('error', (error) => {
+      console.error(`[AppCoordinator] FileMonitor error:`, error);
       this.emit('error', { source: 'fileMonitor', error });
     });
     
     this.messageProcessor.on('processingError', (error) => {
+      console.error(`[AppCoordinator] MessageProcessor error:`, error);
       this.emit('error', { source: 'messageProcessor', error });
     });
   }
@@ -83,14 +98,21 @@ export class AppCoordinator extends EventEmitter {
   }
   
   async updateConfig(config: AgentTTSConfig): Promise<void> {
+    console.log('[AppCoordinator] Updating configuration...');
+    
     // Stop current monitoring
     await this.fileMonitor.stopMonitoring();
     
     // Wait for current TTS to finish
     await this.waitForTTSCompletion();
     
+    // Clear cached TTS services to use new config
+    this.ttsQueue.clearCachedServices();
+    
     // Reinitialize with new config
     await this.initialize(config);
+    
+    console.log('[AppCoordinator] Configuration updated successfully');
   }
   
   private async waitForTTSCompletion(): Promise<void> {
