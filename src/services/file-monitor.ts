@@ -17,6 +17,7 @@ export class FileMonitor extends EventEmitter {
   private database: DatabaseManager;
   private changeQueue: FileChange[] = [];
   private isProcessing = false;
+  private isInitialScanComplete = false;
 
   constructor(database: DatabaseManager) {
     super();
@@ -49,6 +50,12 @@ export class FileMonitor extends EventEmitter {
           pollInterval: 100
         }
       });
+      
+      // Mark when initial scan is complete
+      watcher.on('ready', () => {
+        console.log(`[FileMonitor] Initial scan complete for profile: ${profile.id}`);
+        this.isInitialScanComplete = true;
+      });
 
       watcher.on('add', async (path) => {
         console.log(`[FileMonitor] File added: ${path}`);
@@ -68,9 +75,9 @@ export class FileMonitor extends EventEmitter {
           } else {
             console.log(`[FileMonitor] No new content to process`);
           }
-        } else {
-          // New file on startup - just save state, don't process old content
-          console.log(`[FileMonitor] New file detected on startup, saving state without processing`);
+        } else if (!this.isInitialScanComplete) {
+          // New file during startup scan - just save state, don't process old content
+          console.log(`[FileMonitor] New file detected during startup scan, saving state without processing`);
           
           // Save file state with current size (marking all existing content as "processed")
           const state: FileState = {
@@ -81,6 +88,37 @@ export class FileMonitor extends EventEmitter {
           };
           await this.database.updateFileState(state);
           console.log(`[FileMonitor] Saved file state at offset ${stats.size} (skipping existing content)`);
+        } else {
+          // New file after startup - process entire content
+          console.log(`[FileMonitor] New file detected after startup, processing entire content`);
+          
+          if (stats.size > 0) {
+            // Read and process the entire file
+            const content = readFileSync(path, 'utf-8');
+            
+            if (content.trim()) {
+              const change: FileChange = {
+                filepath: path,
+                profile,
+                content,
+                offset: 0
+              };
+              
+              this.changeQueue.push(change);
+              console.log(`[FileMonitor] Queued new file with ${content.length} chars`);
+              this.processQueue();
+            }
+          }
+          
+          // Save file state with current size
+          const state: FileState = {
+            filepath: path,
+            lastModified: stats.mtimeMs,
+            fileSize: stats.size,
+            lastProcessedOffset: stats.size
+          };
+          await this.database.updateFileState(state);
+          console.log(`[FileMonitor] Saved file state at offset ${stats.size}`);
         }
       });
 
