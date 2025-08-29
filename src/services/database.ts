@@ -139,6 +139,18 @@ export class DatabaseManager {
     };
   }
 
+  async resetStuckPlayingEntries(): Promise<void> {
+    if (!this.db) return;
+    
+    // Reset any other entries that might be stuck in 'playing' state
+    await this.db.run(
+      `UPDATE tts_queue 
+       SET state = 'error', 
+           api_response_message = 'Interrupted - new message started playing'
+       WHERE state = 'playing'`
+    );
+  }
+  
   async updateTTSQueueEntry(id: number, updates: Partial<TTSQueueEntry>): Promise<void> {
     if (!this.db) return;
     

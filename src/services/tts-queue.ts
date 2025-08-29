@@ -85,6 +85,10 @@ export class TTSQueueProcessor extends EventEmitter {
       }
       
       if (message.id) {
+        // First, ensure no other entries are stuck in 'playing' state
+        await this.database.resetStuckPlayingEntries();
+        
+        // Now mark this entry as playing
         await this.database.updateTTSQueueEntry(message.id, {
           state: 'playing'
         });

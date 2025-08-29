@@ -1,7 +1,6 @@
 import { EventEmitter } from 'events';
 import { watch, FSWatcher } from 'chokidar';
 import { readFileSync, statSync, existsSync } from 'fs';
-import { glob } from 'glob';
 import { ProfileConfig, ParsedMessage, FileState } from '../types/config';
 import { DatabaseManager } from './database';
 
@@ -33,42 +32,71 @@ export class FileMonitor extends EventEmitter {
       this.profiles.set(profile.id, profile);
       console.log(`Processing profile: ${profile.id} with ${profile.watchPaths.length} watch paths`);
 
-      for (const watchPath of profile.watchPaths) {
-        console.log(`  Resolving watch path: ${watchPath}`);
-        const files = await this.resolveWatchPath(watchPath);
-        console.log(`  Found ${files.length} files`);
-        
-        for (const file of files) {
-          console.log(`    Watching file: ${file}`);
-          await this.initializeFileState(file);
-          
-          const watcher = watch(file, {
-            persistent: true,
-            ignoreInitial: true,
-            awaitWriteFinish: {
-              stabilityThreshold: 500,
-              pollInterval: 100
-            }
-          });
+      // Expand tilde in all paths
+      const expandedPaths = profile.watchPaths.map(path => {
+        const expanded = path.replace(/^~/, process.env.HOME || '');
+        console.log(`  Watch path: ${path} -> ${expanded}`);
+        return expanded;
+      });
 
-          watcher.on('change', (path) => {
-            console.log(`[FileMonitor] Change detected in: ${path}`);
-            this.handleFileChange(file, profile);
-          });
-          watcher.on('add', (path) => {
-            console.log(`[FileMonitor] File added: ${path}`);
-            this.handleFileChange(file, profile);
-          });
-          watcher.on('error', (error) => {
-            console.error(`[FileMonitor] Watcher error for ${file}:`, error);
-          });
-          
-          this.watchers.set(`${profile.id}:${file}`, watcher);
+      // Create a single watcher for all paths in this profile
+      // Chokidar will handle glob patterns internally including **/*.json
+      const watcher = watch(expandedPaths, {
+        persistent: true,
+        ignoreInitial: false, // Process existing files
+        awaitWriteFinish: {
+          stabilityThreshold: 500,
+          pollInterval: 100
         }
-      }
+      });
+
+      watcher.on('add', async (path) => {
+        console.log(`[FileMonitor] File added: ${path}`);
+        
+        // Check if this file has been seen before
+        const existingState = await this.database.getFileState(path);
+        const stats = statSync(path);
+        
+        if (existingState) {
+          // File exists in database - check for new content only
+          console.log(`[FileMonitor] File already tracked, checking for new content`);
+          
+          if (stats.size > existingState.lastProcessedOffset) {
+            // Has new content since last processed
+            console.log(`[FileMonitor] Found new content (${stats.size - existingState.lastProcessedOffset} bytes)`);
+            await this.handleFileChange(path, profile);
+          } else {
+            console.log(`[FileMonitor] No new content to process`);
+          }
+        } else {
+          // New file on startup - just save state, don't process old content
+          console.log(`[FileMonitor] New file detected on startup, saving state without processing`);
+          
+          // Save file state with current size (marking all existing content as "processed")
+          const state: FileState = {
+            filepath: path,
+            lastModified: stats.mtimeMs,
+            fileSize: stats.size,
+            lastProcessedOffset: stats.size  // Mark current size as processed
+          };
+          await this.database.updateFileState(state);
+          console.log(`[FileMonitor] Saved file state at offset ${stats.size} (skipping existing content)`);
+        }
+      });
+
+      watcher.on('change', (path) => {
+        console.log(`[FileMonitor] Change detected in: ${path}`);
+        this.handleFileChange(path, profile);
+      });
+
+      watcher.on('error', (error) => {
+        console.error(`[FileMonitor] Watcher error for profile ${profile.id}:`, error);
+      });
+      
+      this.watchers.set(profile.id, watcher);
     }
 
-    console.log(`Monitoring ${this.watchers.size} files across ${profiles.filter(p => p.enabled).length} profiles`);
+    console.log(`Monitoring ${profiles.filter(p => p.enabled).length} profiles with watchers`);
   }
 
   async stopMonitoring(): Promise<void> {
@@ -80,61 +108,17 @@ export class FileMonitor extends EventEmitter {
   }
 
   stopMonitoringProfile(profileId: string): void {
-    const keysToRemove: string[] = [];
-    
-    for (const [key, watcher] of this.watchers) {
-      if (key.startsWith(`${profileId}:`)) {
-        watcher.close();
-        keysToRemove.push(key);
-      }
+    const watcher = this.watchers.get(profileId);
+    if (watcher) {
+      watcher.close();
+      this.watchers.delete(profileId);
     }
-    
-    keysToRemove.forEach(key => this.watchers.delete(key));
     this.profiles.delete(profileId);
   }
 
-  private async resolveWatchPath(watchPath: string): Promise<string[]> {
-    if (watchPath.includes('*')) {
-      const expandedPath = watchPath.replace(/^~/, process.env.HOME || '');
-      return await glob(expandedPath);
-    }
-    
-    const expandedPath = watchPath.replace(/^~/, process.env.HOME || '');
-    if (existsSync(expandedPath)) {
-      return [expandedPath];
-    }
-    
-    return [];
-  }
+  // Removed handleNewFile - no longer needed as we handle all files uniformly
 
-  private async initializeFileState(filepath: string): Promise<void> {
-    if (!existsSync(filepath)) return;
-
-    const stats = statSync(filepath);
-    const existingState = await this.database.getFileState(filepath);
-
-    if (!existingState) {
-      // On first run, set offset to current file size to avoid replaying old messages
-      const state: FileState = {
-        filepath,
-        lastModified: stats.mtimeMs,
-        fileSize: stats.size,
-        lastProcessedOffset: stats.size
-      };
-      await this.database.updateFileState(state);
-      console.log(`[FileMonitor] Initialized state for ${filepath} at offset ${stats.size} (skipping existing content)`);
-    } else if (existingState.lastProcessedOffset > stats.size) {
-      // File was truncated, reset offset
-      const state: FileState = {
-        filepath,
-        lastModified: stats.mtimeMs,
-        fileSize: stats.size,
-        lastProcessedOffset: 0
-      };
-      await this.database.updateFileState(state);
-      console.log(`[FileMonitor] File ${filepath} was truncated, reset offset to 0`);
-    }
-  }
+  // Removed initializeFileState - no longer needed as we handle state inline
 
   private async handleFileChange(filepath: string, profile: ProfileConfig): Promise<void> {
     console.log(`[FileMonitor] Processing change for: ${filepath} (profile: ${profile.id})`);
@@ -147,12 +131,20 @@ export class FileMonitor extends EventEmitter {
     const stats = statSync(filepath);
     console.log(`[FileMonitor] File stats - size: ${stats.size}, mtime: ${new Date(stats.mtimeMs).toISOString()}`);
     
-    const fileState = await this.database.getFileState(filepath);
+    let fileState = await this.database.getFileState(filepath);
     
     if (!fileState) {
-      console.log(`[FileMonitor] No previous state found, initializing...`);
-      await this.initializeFileState(filepath);
-      return;
+      console.log(`[FileMonitor] No previous state found, treating as new file`);
+      // This shouldn't happen in normal flow as 'add' event handles new files
+      // But if it does, treat the entire file as new content
+      const newState: FileState = {
+        filepath,
+        lastModified: stats.mtimeMs,
+        fileSize: stats.size,
+        lastProcessedOffset: 0
+      };
+      await this.database.updateFileState(newState);
+      fileState = newState;
     }
     
     console.log(`[FileMonitor] Previous state - size: ${fileState.fileSize}, offset: ${fileState.lastProcessedOffset}`);
@@ -251,11 +243,10 @@ export class FileMonitor extends EventEmitter {
     const toUpdate = enabledProfiles.filter(p => currentIds.has(p.id));
 
     for (const profileId of toRemove) {
-      for (const [key, watcher] of this.watchers) {
-        if (key.startsWith(`${profileId}:`)) {
-          watcher.close();
-          this.watchers.delete(key);
-        }
+      const watcher = this.watchers.get(profileId);
+      if (watcher) {
+        watcher.close();
+        this.watchers.delete(profileId);
       }
       this.profiles.delete(profileId);
     }

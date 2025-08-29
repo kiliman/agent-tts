@@ -27,7 +27,7 @@ export class PronunciationFilter extends BaseFilter {
     ["tts", "T T S"],
     ["async", "a sync"],
     ["sync", "sink"],
-    ["regex", "reg ex"],
+    ["regex", "regh ex"],
     ["enum", "e num"],
     ["oauth", "oh auth"],
     ["uuid", "U U I D"],
@@ -46,7 +46,6 @@ export class PronunciationFilter extends BaseFilter {
     ["mp4", "M P 4"],
     ["~", "tilde"],
     ["`", "backtick"],
-    ["/", "slash"],
     ["\\", "backslash"],
     ["@", "at"],
     ["#", "hash"],
@@ -68,9 +67,9 @@ export class PronunciationFilter extends BaseFilter {
 
     for (const [original, replacement] of this.replacements) {
       // Escape special regex characters in the original string
-      const escaped = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const escaped = original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const regex = new RegExp(`\\b${escaped}\\b`, "gi");
-      content = content.replace(regex, replacement);
+      content = content.replace(regex, ` ${replacement} `);
     }
 
     // Add space between camelCase words (e.g., "myVariable" -> "my Variable")
