@@ -11,6 +11,7 @@ export interface QueuedMessage extends TTSQueueEntry {
 export class TTSQueueProcessor extends EventEmitter {
   private database: DatabaseManager;
   private queue: QueuedMessage[] = [];
+  private currentlyPlaying: QueuedMessage | null = null;
   private isProcessing = false;
   private isMuted = false;
   private ttsServices: Map<string, BaseTTSService> = new Map();
@@ -23,6 +24,19 @@ export class TTSQueueProcessor extends EventEmitter {
   addToQueue(message: QueuedMessage): void {
     if (this.isMuted) {
       console.log(`TTS is muted, skipping message from ${message.profile}`);
+      return;
+    }
+    
+    // Check if this entry is already playing
+    if (this.currentlyPlaying && this.currentlyPlaying.id === message.id) {
+      console.log(`[TTSQueue] Entry ${message.id} is currently playing, skipping duplicate`);
+      return;
+    }
+    
+    // Check if this entry is already in the queue
+    const isDuplicate = this.queue.some(queuedMsg => queuedMsg.id === message.id);
+    if (isDuplicate) {
+      console.log(`[TTSQueue] Entry ${message.id} is already queued, skipping duplicate`);
       return;
     }
     
@@ -61,6 +75,9 @@ export class TTSQueueProcessor extends EventEmitter {
     const startTime = Date.now();
     
     try {
+      // Set currently playing
+      this.currentlyPlaying = message;
+      
       const ttsService = this.getTTSService(message.profileConfig);
       
       if (!ttsService.isAvailable()) {
@@ -89,7 +106,13 @@ export class TTSQueueProcessor extends EventEmitter {
       
       this.emit('played', message);
       
+      // Clear currently playing
+      this.currentlyPlaying = null;
+      
     } catch (error) {
+      // Clear currently playing on error
+      this.currentlyPlaying = null;
+      
       const processingTime = Date.now() - startTime;
       
       if (message.id) {
@@ -127,11 +150,13 @@ export class TTSQueueProcessor extends EventEmitter {
   
   clearQueue(): void {
     this.queue = [];
+    this.currentlyPlaying = null;
     console.log('[TTSQueue] Queue cleared');
   }
   
   stopCurrent(): void {
     this.queue = [];
+    this.currentlyPlaying = null;
     this.emit('stopped');
   }
   
