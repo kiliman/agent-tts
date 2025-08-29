@@ -125,13 +125,14 @@ export class TTSQueueProcessor extends EventEmitter {
     }
   }
   
+  clearQueue(): void {
+    this.queue = [];
+    console.log('[TTSQueue] Queue cleared');
+  }
+  
   stopCurrent(): void {
     this.queue = [];
     this.emit('stopped');
-  }
-  
-  clearQueue(): void {
-    this.queue = [];
   }
   
   clearCachedServices(): void {

@@ -115,6 +115,30 @@ export class DatabaseManager {
     return result.lastID || 0;
   }
 
+  async getEntryById(id: number): Promise<TTSQueueEntry | null> {
+    if (!this.db) return null;
+    
+    const row = await this.db.get(
+      `SELECT * FROM tts_queue WHERE id = ?`,
+      id
+    );
+    
+    if (!row) return null;
+    
+    return {
+      id: row.id,
+      timestamp: new Date(row.timestamp),
+      filename: row.filename,
+      profile: row.profile,
+      originalText: row.original_text,
+      filteredText: row.filtered_text,
+      state: row.state,
+      apiResponseStatus: row.api_response_status,
+      apiResponseMessage: row.api_response_message,
+      processingTime: row.processing_time
+    };
+  }
+
   async updateTTSQueueEntry(id: number, updates: Partial<TTSQueueEntry>): Promise<void> {
     if (!this.db) return;
     

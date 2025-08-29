@@ -240,4 +240,71 @@ ipcMain.handle('show-log-window', () => {
   }
 });
 
+// Playback control handlers
+ipcMain.on('play-entry', async (event, entryId: number) => {
+  if (!appCoordinator) {
+    console.error('[Main] Cannot play entry - app coordinator not initialized');
+    return;
+  }
+  
+  try {
+    // Get the entry from database
+    const database = (appCoordinator as any).database;
+    if (!database) {
+      console.error('[Main] Cannot play entry - database not available');
+      return;
+    }
+    
+    const entry = await database.getEntryById(entryId);
+    if (!entry) {
+      console.error(`[Main] Entry ${entryId} not found`);
+      return;
+    }
+    
+    console.log(`[Main] Playing entry ${entryId}: ${entry.filteredText.substring(0, 50)}...`);
+    
+    // Get the profile configuration
+    const config = (appCoordinator as any).config;
+    const profileConfig = config?.profiles?.find((p: any) => p.id === entry.profile);
+    
+    if (!profileConfig) {
+      console.error(`[Main] Profile configuration not found for ${entry.profile}`);
+      return;
+    }
+    
+    // Queue the message for playback
+    const ttsQueue = (appCoordinator as any).ttsQueue;
+    if (ttsQueue) {
+      ttsQueue.addToQueue({
+        id: entry.id,
+        timestamp: entry.timestamp,
+        filename: entry.filename,
+        profile: entry.profile,
+        originalText: entry.originalText,
+        filteredText: entry.filteredText,
+        state: 'queued',
+        profileConfig: profileConfig
+      });
+    }
+  } catch (error) {
+    console.error(`[Main] Error playing entry ${entryId}:`, error);
+  }
+});
+
+ipcMain.on('pause-playback', () => {
+  console.log('[Main] Pause playback requested');
+  // TODO: Implement pause functionality in TTS service
+});
+
+ipcMain.on('stop-playback', () => {
+  console.log('[Main] Stop playback requested');
+  if (appCoordinator) {
+    const ttsQueue = (appCoordinator as any).ttsQueue;
+    if (ttsQueue) {
+      // Clear the queue to stop playback
+      ttsQueue.clearQueue();
+    }
+  }
+});
+
 export { store };
