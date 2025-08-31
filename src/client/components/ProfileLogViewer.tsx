@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { LogViewer } from './LogViewer';
 import { apiClient, wsClient } from '../services/api';
+import { RefreshCw, Bot, AlertCircle } from 'lucide-react';
 
 interface ProfileLogViewerProps {
   refreshTrigger?: number;
@@ -122,8 +123,8 @@ export function ProfileLogViewer({
                   className="h-20 w-20 rounded-lg object-cover"
                 />
               ) : (
-                <div className="h-20 w-20 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-4xl">
-                  {profileInfo.icon || '🤖'}
+                <div className="h-20 w-20 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                  <Bot className="w-10 h-10 text-gray-600 dark:text-gray-400" />
                 </div>
               )}
               
@@ -146,9 +147,10 @@ export function ProfileLogViewer({
                   loadLogs();
                   if (onRefresh) onRefresh();
                 }}
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors flex items-center gap-1.5"
               >
-                🔄 Refresh
+                <RefreshCw className="w-4 h-4" />
+                Refresh
               </button>
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -168,7 +170,8 @@ export function ProfileLogViewer({
       
       {error && (
         <div className="bg-red-500 text-white px-6 py-3 flex items-center gap-2">
-          <span>⚠️ {error}</span>
+          <AlertCircle className="w-5 h-5" />
+          <span>{error}</span>
         </div>
       )}
       

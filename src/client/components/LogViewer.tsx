@@ -1,5 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
 import clsx from "clsx";
+import { 
+  Clock, 
+  CheckCircle, 
+  XCircle, 
+  Play, 
+  Pause, 
+  ChevronDown, 
+  ChevronUp,
+  RefreshCw 
+} from "lucide-react";
 
 interface LogEntry {
   id: number;
@@ -60,13 +70,13 @@ export function LogViewer({
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "queued":
-        return "⏳";
+        return <Clock className="w-4 h-4 text-blue-500" />;
       case "played":
-        return "✅";
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
       case "error":
-        return "❌";
+        return <XCircle className="w-4 h-4 text-red-500" />;
       default:
-        return "•";
+        return <div className="w-4 h-4 rounded-full bg-gray-400" />;
     }
   };
 
@@ -88,9 +98,10 @@ export function LogViewer({
           <button
             type="button"
             onClick={onRefresh}
-            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
+            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors flex items-center gap-1.5"
           >
-            🔄 Refresh
+            <RefreshCw className="w-4 h-4" />
+            Refresh
           </button>
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -125,7 +136,7 @@ export function LogViewer({
               )}
             >
               <div className="p-3 flex items-center gap-3">
-                <span className="text-base">{getStatusIcon(log.status)}</span>
+                <span className="flex-shrink-0">{getStatusIcon(log.status)}</span>
                 <span className="text-gray-500 dark:text-gray-400 text-xs">
                   {formatTimestamp(log.timestamp)}
                 </span>
@@ -138,18 +149,25 @@ export function LogViewer({
                   <button
                     type="button"
                     onClick={() => handlePlay(log.id)}
-                    className="px-2 py-1 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                     title="Replay"
                     disabled={playingId === log.id}
                   >
-                    {playingId === log.id ? "⏸️" : "▶️"}
+                    {playingId === log.id ? 
+                      <Pause className="w-4 h-4" /> : 
+                      <Play className="w-4 h-4" />
+                    }
                   </button>
                   <button
                     type="button"
                     onClick={() => toggleExpand(log.id)}
-                    className="px-2 py-1 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-sm transition-colors"
+                    className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded transition-colors"
+                    title={expandedIds.has(log.id) ? "Collapse" : "Expand"}
                   >
-                    {expandedIds.has(log.id) ? "⌃" : "⌄"}
+                    {expandedIds.has(log.id) ? 
+                      <ChevronUp className="w-4 h-4" /> : 
+                      <ChevronDown className="w-4 h-4" />
+                    }
                   </button>
                 </div>
               </div>
