@@ -35,7 +35,7 @@ export class OpenCodeParser extends BaseParser {
               if (messageData.role === 'assistant') {
                 messages.push({
                   role: "assistant",
-                  content: this.cleanContent(partMessage.text),
+                  content: partMessage.text,
                   timestamp: partMessage.time?.start ? new Date(partMessage.time.start) : new Date(),
                 });
                 console.log(`[OpenCodeParser] Processing assistant message: ${partMessage.text.substring(0, 50)}...`);

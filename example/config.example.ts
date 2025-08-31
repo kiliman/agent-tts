@@ -1,4 +1,5 @@
 import type { AgentTTSConfig, TTSServiceConfig } from '../src/types/config';
+import { markdownCleaner } from '../src/filters/markdown-cleaner';
 
 // Base ElevenLabs configuration - shared across all profiles
 const baseElevenLabsConfig: TTSServiceConfig = {
@@ -34,16 +35,9 @@ const config: AgentTTSConfig = {
       },
       filters: [
         {
-          name: 'remove-code',
+          name: 'markdown-cleaner',
           enabled: true,
-          filter: (message) => {
-            // Remove code blocks from messages
-            const filtered = {
-              ...message,
-              content: message.content.replace(/```[\s\S]*?```/g, '[code removed]')
-            };
-            return filtered.content.trim() ? filtered : null;
-          }
+          filter: markdownCleaner
         },
         {
           name: 'pronunciation',

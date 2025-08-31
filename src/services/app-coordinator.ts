@@ -236,10 +236,10 @@ export class AppCoordinator extends EventEmitter {
     if (log) {
       this.ttsQueue.addToQueue({
         profile: log.profile,
-        originalText: log.original_text,
-        filteredText: log.filtered_text,
-        filepath: log.file_path,
-        timestamp: Date.now()
+        originalText: log.originalText,
+        filteredText: log.filteredText,
+        filepath: log.filePath,
+        timestamp: new Date()
       });
     }
   }

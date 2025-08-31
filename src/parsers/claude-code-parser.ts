@@ -29,7 +29,7 @@ export class ClaudeCodeParser extends BaseParser {
         
         messages.push({
           role: 'assistant',
-          content: this.cleanContent(text),
+          content: text,
           timestamp
         });
       } catch (error) {
