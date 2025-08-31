@@ -94,10 +94,10 @@ export class TTSLogRepository {
       SELECT 
         id,
         timestamp,
-        filename as file_path,
+        filename as filePath,
         profile,
-        original_text,
-        filtered_text,
+        original_text as originalText,
+        filtered_text as filteredText,
         state as status,
         api_response_status as ttsStatus,
         api_response_message as ttsMessage,

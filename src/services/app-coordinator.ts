@@ -283,14 +283,27 @@ export class AppCoordinator extends EventEmitter {
 
   async replayLog(logId: number): Promise<void> {
     const log = this.database.getTTSLog().getLogById(logId);
-    if (log) {
-      this.ttsQueue.addToQueue({
+    if (log && this.config) {
+      // Find the profile configuration
+      const profileConfig = this.config.profiles.find(p => p.id === log.profile);
+      if (!profileConfig) {
+        console.error(`Profile ${log.profile} not found in configuration`);
+        throw new Error(`Profile ${log.profile} not found`);
+      }
+      
+      // Create a new entry with the profile config
+      const entry: any = {
+        id: log.id,
         profile: log.profile,
         originalText: log.originalText,
         filteredText: log.filteredText,
         filename: log.filePath,
         timestamp: new Date(),
-      });
+        state: 'queued',
+        profileConfig: profileConfig
+      };
+      
+      this.ttsQueue.addToQueue(entry);
     }
   }
 
