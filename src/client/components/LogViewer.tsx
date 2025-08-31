@@ -138,7 +138,7 @@ export function LogViewer({
                 })}>
                   {expandedIds.has(log.id)
                     ? "Click to collapse..."
-                    : log.filteredText}
+                    : log.originalText}
                 </div>
                 <div className="flex gap-2">
                   <button
