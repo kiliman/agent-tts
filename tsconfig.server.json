@@ -1,0 +1,44 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "lib": ["ES2022"],
+    "moduleResolution": "node",
+    "outDir": "./dist/server",
+    "rootDir": "./src/server",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "allowSyntheticDefaultImports": true,
+    "types": ["node"],
+    "paths": {
+      "@shared/*": ["./src/shared/*"],
+      "@services/*": ["./src/services/*"],
+      "@parsers/*": ["./src/parsers/*"],
+      "@filters/*": ["./src/filters/*"],
+      "@database/*": ["./src/database/*"],
+      "@config/*": ["./src/config/*"],
+      "@monitoring/*": ["./src/monitoring/*"],
+      "@types/*": ["./src/types/*"]
+    },
+    "baseUrl": "."
+  },
+  "include": [
+    "src/server/**/*",
+    "src/services/**/*",
+    "src/parsers/**/*",
+    "src/filters/**/*",
+    "src/database/**/*",
+    "src/config/**/*",
+    "src/monitoring/**/*",
+    "src/types/**/*",
+    "src/shared/**/*"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

@@ -15,11 +15,19 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
+    "allowSyntheticDefaultImports": true,
     "baseUrl": "./src",
     "paths": {
       "@shared/*": ["shared/*"],
-      "@main/*": ["main/*"],
-      "@renderer/*": ["renderer/*"]
+      "@client/*": ["client/*"],
+      "@server/*": ["server/*"],
+      "@services/*": ["services/*"],
+      "@parsers/*": ["parsers/*"],
+      "@filters/*": ["filters/*"],
+      "@database/*": ["database/*"],
+      "@config/*": ["config/*"],
+      "@monitoring/*": ["monitoring/*"],
+      "@types/*": ["types/*"]
     }
   },
   "include": ["src/**/*", "test/**/*", "global.d.ts"],
