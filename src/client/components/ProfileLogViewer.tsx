@@ -101,38 +101,48 @@ export function ProfileLogViewer() {
   return (
     <div className="flex flex-col h-full">
       <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-4">
-          <Link 
-            to="/" 
-            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-          >
-            ← Back to Dashboard
-          </Link>
-          
-          {profileInfo && (
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-gray-400 dark:bg-gray-600 rounded-full"></div>
-              
-              {profileInfo.avatarUrl ? (
-                <img 
-                  src={profileInfo.avatarUrl} 
-                  alt={profileInfo.name}
-                  className="w-8 h-8 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-lg">
-                  {profileInfo.icon || '🤖'}
-                </div>
-              )}
-              
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link 
+              to="/" 
+              className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+            >
+              ← Back to Dashboard
+            </Link>
+            
+            {profileInfo && (
               <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                 {profileInfo.name || profile}
               </h2>
-              
-              {profileInfo.voiceName && (
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  ({profileInfo.voiceName})
-                </span>
+            )}
+          </div>
+          
+          {profileInfo && (
+            <div className="flex items-center gap-4">
+              {profileInfo.profileUrl || profileInfo.avatarUrl ? (
+                <div className="text-right">
+                  <img 
+                    src={profileInfo.profileUrl || profileInfo.avatarUrl} 
+                    alt={profileInfo.name}
+                    className="h-20 w-20 rounded-lg object-cover"
+                  />
+                  {profileInfo.voiceName && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {profileInfo.voiceName}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center">
+                  <div className="h-20 w-20 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-4xl">
+                    {profileInfo.icon || '🤖'}
+                  </div>
+                  {profileInfo.voiceName && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {profileInfo.voiceName}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           )}

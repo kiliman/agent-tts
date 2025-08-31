@@ -105,40 +105,26 @@ export function LogViewer({
             <div
               key={log.id}
               className={clsx(
-                "mb-3 bg-white dark:bg-gray-800 border rounded-lg overflow-hidden transition-all",
+                "mb-3 bg-white dark:bg-gray-800 border rounded-lg overflow-hidden transition-all border-gray-200 dark:border-gray-700",
                 {
                   "border-red-500 dark:border-red-400": log.status === "error",
-                  "border-green-500 dark:border-green-400":
-                    log.status === "played",
                   "border-blue-500 dark:border-blue-400":
                     log.status === "queued",
                   "border-green-500 dark:border-green-400 shadow-lg shadow-green-500/20 animate-pulse bg-gradient-to-r from-green-50 to-transparent dark:from-green-900/20":
                     playingId === log.id,
-                  "border-gray-200 dark:border-gray-700":
-                    log.status !== "error" &&
-                    log.status !== "played" &&
-                    log.status !== "queued" &&
-                    playingId !== log.id,
                 }
               )}
             >
-              <div className="p-3 flex items-center gap-3 bg-gray-50 dark:bg-gray-900">
-                {log.avatarUrl && (
-                  <img
-                    src={log.avatarUrl}
-                    alt={log.voiceName || log.profile}
-                    className="w-16 h-16 rounded-full object-cover border-2 border-blue-500 flex-shrink-0"
-                    title={log.voiceName || log.profile}
-                  />
-                )}
+              <div className="p-3 flex items-center gap-3">
                 <span className="text-base">{getStatusIcon(log.status)}</span>
-                <span className="px-2 py-0.5 bg-blue-600 text-white rounded-full text-xs font-semibold">
-                  {log.voiceName || log.profile}
-                </span>
-                <span className="text-gray-500 dark:text-gray-400 text-xs ml-auto">
+                <span className="text-gray-500 dark:text-gray-400 text-xs">
                   {formatTimestamp(log.timestamp)}
                 </span>
-
+                <div className="flex-1 text-gray-900 dark:text-gray-100 text-sm truncate">
+                  {expandedIds.has(log.id)
+                    ? "Click to collapse..."
+                    : log.filteredText}
+                </div>
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -159,42 +145,32 @@ export function LogViewer({
                 </div>
               </div>
 
-              <div className="p-3">
-                <div className="text-gray-900 dark:text-gray-100 font-mono text-sm leading-relaxed">
-                  {expandedIds.has(log.id)
-                    ? log.originalText
-                    : log.originalText.length > 100
-                    ? `${log.originalText.substring(0, 100)}...`
-                    : log.originalText}
-                </div>
-
-                {expandedIds.has(log.id) && (
-                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <div className="mb-3">
-                      <strong className="block mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase">
-                        Original Text:
-                      </strong>
-                      <pre className="bg-gray-100 dark:bg-gray-900 p-2 rounded text-xs font-mono whitespace-pre-wrap break-words overflow-x-auto">
-                        {log.originalText}
-                      </pre>
-                    </div>
-                    <div className="mb-3">
-                      <strong className="block mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase">
-                        Filtered Text (Sent to TTS):
-                      </strong>
-                      <pre className="bg-gray-100 dark:bg-gray-900 p-2 rounded text-xs font-mono whitespace-pre-wrap break-words overflow-x-auto">
-                        {log.filteredText}
-                      </pre>
-                    </div>
-                    <div className="mb-3">
-                      <strong className="block mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase">
-                        File:
-                      </strong>
-                      <span className="text-sm">{log.filePath}</span>
-                    </div>
+              {expandedIds.has(log.id) && (
+                <div className="px-3 pb-3 border-t border-gray-200 dark:border-gray-700">
+                  <div className="mt-3">
+                    <strong className="block mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase">
+                      Original Text:
+                    </strong>
+                    <pre className="bg-gray-100 dark:bg-gray-900 p-2 rounded text-xs font-mono whitespace-pre-wrap break-words overflow-x-auto">
+                      {log.originalText}
+                    </pre>
                   </div>
-                )}
-              </div>
+                  <div className="mt-3">
+                    <strong className="block mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase">
+                      Filtered Text (Sent to TTS):
+                    </strong>
+                    <pre className="bg-gray-100 dark:bg-gray-900 p-2 rounded text-xs font-mono whitespace-pre-wrap break-words overflow-x-auto">
+                      {log.filteredText}
+                    </pre>
+                  </div>
+                  <div className="mt-3">
+                    <strong className="block mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase">
+                      File:
+                    </strong>
+                    <span className="text-sm">{log.filePath}</span>
+                  </div>
+                </div>
+              )}
             </div>
           ))
         )}
