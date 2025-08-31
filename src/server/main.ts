@@ -23,12 +23,12 @@ async function startServer() {
   try {
     // Initialize database
     console.log('Initializing database...');
-    await initializeDatabase();
+    initializeDatabase();
 
     // Initialize config loader
     console.log('Loading configuration...');
     configLoader = new ConfigLoader();
-    const config = await configLoader.loadConfig();
+    const config = await configLoader.load();
 
     // Initialize app coordinator
     console.log('Starting app coordinator...');

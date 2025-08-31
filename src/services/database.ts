@@ -1,42 +1,44 @@
-import sqlite3 from 'sqlite3';
-import { open, Database } from 'sqlite';
+import Database from 'better-sqlite3';
 import path from 'path';
 import os from 'os';
-import { FileState, TTSQueueEntry } from '../types/config';
+import fs from 'fs';
+import { FileState, TTSQueueEntry } from '../types/config.js';
+import { TTSLogRepository } from '../database/tts-log.js';
 
 export class DatabaseManager {
-  private db: Database | null = null;
+  private db: Database.Database;
   private dbPath: string;
+  private ttsLogRepo: TTSLogRepository;
 
   constructor(dbPath?: string) {
     this.dbPath = dbPath || path.join(os.homedir(), '.agent-tts', 'agent-tts.db');
     
     const dbDir = path.dirname(this.dbPath);
-    const fs = require('fs');
     if (!fs.existsSync(dbDir)) {
       fs.mkdirSync(dbDir, { recursive: true });
     }
 
+    this.db = new Database(this.dbPath);
+    this.ttsLogRepo = new TTSLogRepository();
     this.initialize();
   }
-
-  private async initialize(): Promise<void> {
-    this.db = await open({
-      filename: this.dbPath,
-      driver: sqlite3.Database
-    });
-    await this.initializeTables();
+  
+  getTTSLog(): TTSLogRepository {
+    return this.ttsLogRepo;
   }
 
-  private async initializeTables(): Promise<void> {
-    if (!this.db) return;
-    await this.db.exec(`
+  private initialize(): void {
+    this.initializeTables();
+  }
+
+  private initializeTables(): void {
+    this.db.exec(`
       CREATE TABLE IF NOT EXISTS file_states (
         filepath TEXT PRIMARY KEY,
         last_modified INTEGER NOT NULL,
         file_size INTEGER NOT NULL,
         last_processed_offset INTEGER NOT NULL,
-        updated_at INTEGER DEFAULT (unixepoch())
+        updated_at INTEGER DEFAULT (strftime('%s', 'now'))
       );
 
       CREATE TABLE IF NOT EXISTS tts_queue (
@@ -50,7 +52,7 @@ export class DatabaseManager {
         api_response_status INTEGER,
         api_response_message TEXT,
         processing_time INTEGER,
-        created_at INTEGER DEFAULT (unixepoch())
+        created_at INTEGER DEFAULT (strftime('%s', 'now'))
       );
 
       CREATE INDEX IF NOT EXISTS idx_tts_queue_state ON tts_queue(state);
@@ -59,15 +61,12 @@ export class DatabaseManager {
     `);
   }
 
-  async getFileState(filepath: string): Promise<FileState | null> {
-    if (!this.db) return null;
-    
-    const row = await this.db.get(
+  getFileState(filepath: string): FileState | null {
+    const row = this.db.prepare(
       `SELECT filepath, last_modified, file_size, last_processed_offset
        FROM file_states
-       WHERE filepath = ?`,
-      filepath
-    );
+       WHERE filepath = ?`
+    ).get(filepath) as any;
     
     if (!row) return null;
     
@@ -79,12 +78,11 @@ export class DatabaseManager {
     };
   }
 
-  async updateFileState(state: FileState): Promise<void> {
-    if (!this.db) return;
-    
-    await this.db.run(
+  updateFileState(state: FileState): void {
+    this.db.prepare(
       `INSERT OR REPLACE INTO file_states (filepath, last_modified, file_size, last_processed_offset, updated_at)
-       VALUES (?, ?, ?, ?, unixepoch())`,
+       VALUES (?, ?, ?, ?, strftime('%s', 'now'))`
+    ).run(
       state.filepath,
       state.lastModified,
       state.fileSize,
@@ -92,15 +90,14 @@ export class DatabaseManager {
     );
   }
 
-  async addTTSQueueEntry(entry: Omit<TTSQueueEntry, 'id'>): Promise<number> {
-    if (!this.db) return 0;
-    
-    const result = await this.db.run(
+  addTTSQueueEntry(entry: Omit<TTSQueueEntry, 'id'>): number {
+    const result = this.db.prepare(
       `INSERT INTO tts_queue (
         timestamp, filename, profile, original_text, filtered_text,
         state, api_response_status, api_response_message, processing_time
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(
       entry.timestamp.getTime(),
       entry.filename,
       entry.profile,
@@ -112,16 +109,13 @@ export class DatabaseManager {
       entry.processingTime || null
     );
     
-    return result.lastID || 0;
+    return result.lastInsertRowid as number;
   }
 
-  async getEntryById(id: number): Promise<TTSQueueEntry | null> {
-    if (!this.db) return null;
-    
-    const row = await this.db.get(
-      `SELECT * FROM tts_queue WHERE id = ?`,
-      id
-    );
+  getEntryById(id: number): TTSQueueEntry | null {
+    const row = this.db.prepare(
+      `SELECT * FROM tts_queue WHERE id = ?`
+    ).get(id) as any;
     
     if (!row) return null;
     
@@ -139,21 +133,17 @@ export class DatabaseManager {
     };
   }
 
-  async resetStuckPlayingEntries(): Promise<void> {
-    if (!this.db) return;
-    
+  resetStuckPlayingEntries(): void {
     // Reset any other entries that might be stuck in 'playing' state
-    await this.db.run(
+    this.db.prepare(
       `UPDATE tts_queue 
        SET state = 'error', 
            api_response_message = 'Interrupted - new message started playing'
        WHERE state = 'playing'`
-    );
+    ).run();
   }
   
-  async updateTTSQueueEntry(id: number, updates: Partial<TTSQueueEntry>): Promise<void> {
-    if (!this.db) return;
-    
+  updateTTSQueueEntry(id: number, updates: Partial<TTSQueueEntry>): void {
     const updateFields: string[] = [];
     const values: any[] = [];
     
@@ -181,35 +171,29 @@ export class DatabaseManager {
     
     values.push(id);
     
-    await this.db.run(
+    this.db.prepare(
       `UPDATE tts_queue
        SET ${updateFields.join(', ')}
-       WHERE id = ?`,
-      ...values
-    );
+       WHERE id = ?`
+    ).run(...values);
   }
 
-  async getQueuedEntries(): Promise<TTSQueueEntry[]> {
-    if (!this.db) return [];
-    
-    const rows = await this.db.all(
+  getQueuedEntries(): TTSQueueEntry[] {
+    const rows = this.db.prepare(
       `SELECT * FROM tts_queue
        WHERE state = 'queued'
        ORDER BY timestamp ASC`
-    );
+    ).all() as any[];
     
     return rows.map(this.mapRowToTTSEntry);
   }
 
-  async getRecentEntries(limit: number = 50): Promise<TTSQueueEntry[]> {
-    if (!this.db) return [];
-    
-    const rows = await this.db.all(
+  getRecentEntries(limit: number = 50): TTSQueueEntry[] {
+    const rows = this.db.prepare(
       `SELECT * FROM tts_queue
        ORDER BY timestamp DESC
-       LIMIT ?`,
-      limit
-    );
+       LIMIT ?`
+    ).all(limit) as any[];
     
     return rows.map(this.mapRowToTTSEntry);
   }
@@ -229,29 +213,24 @@ export class DatabaseManager {
     };
   }
 
-  async clearOldEntries(daysToKeep: number = 7): Promise<number> {
-    if (!this.db) return 0;
-    
+  clearOldEntries(daysToKeep: number = 7): number {
     const cutoffTime = Date.now() - (daysToKeep * 24 * 60 * 60 * 1000);
     
-    const result = await this.db.run(
+    const result = this.db.prepare(
       `DELETE FROM tts_queue
-       WHERE timestamp < ?`,
-      cutoffTime
-    );
+       WHERE timestamp < ?`
+    ).run(cutoffTime);
     
-    return result.changes || 0;
+    return result.changes;
   }
 
-  async close(): Promise<void> {
+  close(): void {
     if (this.db) {
-      await this.db.close();
+      this.db.close();
     }
   }
 
-  async waitForInit(): Promise<void> {
-    while (!this.db) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
+  waitForInit(): void {
+    // No longer needed with sync API
   }
 }

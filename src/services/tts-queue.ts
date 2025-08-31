@@ -1,8 +1,8 @@
 import { EventEmitter } from 'events';
-import { TTSQueueEntry, ProfileConfig } from '../types/config';
-import { DatabaseManager } from './database';
-import { TTSServiceFactory } from './tts/factory';
-import { BaseTTSService } from './tts/base';
+import { TTSQueueEntry, ProfileConfig } from '../types/config.js';
+import { DatabaseManager } from './database.js';
+import { TTSServiceFactory } from './tts/factory.js';
+import { BaseTTSService } from './tts/base.js';
 
 export interface QueuedMessage extends TTSQueueEntry {
   profileConfig: ProfileConfig;
@@ -164,6 +164,24 @@ export class TTSQueueProcessor extends EventEmitter {
     this.emit('stopped');
   }
   
+  pauseCurrent(): void {
+    // For now, we'll just stop - actual pause would require audio player control
+    this.emit('paused');
+  }
+  
+  resumeCurrent(): void {
+    // For now, restart queue processing
+    this.processQueue();
+    this.emit('resumed');
+  }
+  
+  skipCurrent(): void {
+    this.currentlyPlaying = null;
+    this.isProcessing = false;
+    this.processQueue();
+    this.emit('skipped');
+  }
+  
   clearCachedServices(): void {
     // Clear all cached TTS service instances to force recreation with new config
     this.ttsServices.clear();
@@ -174,7 +192,15 @@ export class TTSQueueProcessor extends EventEmitter {
     return this.queue.length;
   }
   
+  getQueueSize(): number {
+    return this.queue.length;
+  }
+  
   isQueueProcessing(): boolean {
     return this.isProcessing;
+  }
+  
+  isCurrentlyPlaying(): boolean {
+    return this.currentlyPlaying !== null;
   }
 }

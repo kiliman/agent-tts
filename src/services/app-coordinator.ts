@@ -1,10 +1,10 @@
 import { EventEmitter } from 'events';
-import { AgentTTSConfig, ProfileConfig } from '../types/config';
-import { DatabaseManager } from './database';
-import { FileMonitor } from './file-monitor';
-import { MessageProcessor } from './message-processor';
-import { TTSQueueProcessor, QueuedMessage } from './tts-queue';
-import { SettingsRepository } from '../database/settings';
+import { AgentTTSConfig, ProfileConfig } from '../types/config.js';
+import { DatabaseManager } from './database.js';
+import { FileMonitor } from './file-monitor.js';
+import { MessageProcessor } from './message-processor.js';
+import { TTSQueueProcessor, QueuedMessage } from './tts-queue.js';
+import { SettingsRepository } from '../database/settings.js';
 
 /**
  * Coordinates all the services in the application
@@ -42,7 +42,7 @@ export class AppCoordinator extends EventEmitter {
       console.log(`[AppCoordinator] Text: ${message.filteredText.substring(0, 100)}${message.filteredText.length > 100 ? '...' : ''}`);
       
       // Check if profile is enabled and not muted
-      const isEnabled = await this.isProfileEnabled(message.profile);
+      const isEnabled = this.isProfileEnabled(message.profile);
       console.log(`[AppCoordinator] Profile ${message.profile} enabled: ${isEnabled}`);
       
       if (isEnabled) {
@@ -89,7 +89,7 @@ export class AppCoordinator extends EventEmitter {
     // Start monitoring files for enabled profiles
     const enabledProfiles: ProfileConfig[] = [];
     for (const profile of config.profiles) {
-      if (profile.enabled !== false && await this.isProfileEnabled(profile.id)) {
+      if (profile.enabled !== false && this.isProfileEnabled(profile.id)) {
         enabledProfiles.push(profile);
       }
     }
@@ -132,7 +132,7 @@ export class AppCoordinator extends EventEmitter {
   }
   
   async toggleProfile(profileId: string, enabled: boolean): Promise<void> {
-    await this.settings.setProfileEnabled(profileId, enabled);
+    this.settings.setProfileEnabled(profileId, enabled);
     
     if (this.config) {
       const profile = this.config.profiles.find(p => p.id === profileId);
@@ -149,7 +149,7 @@ export class AppCoordinator extends EventEmitter {
   }
   
   async toggleMute(muted: boolean): Promise<void> {
-    await this.settings.setMuteAll(muted);
+    this.settings.setMuteAll(muted);
     this.ttsQueue.setMuted(muted);
   }
   
@@ -157,8 +157,86 @@ export class AppCoordinator extends EventEmitter {
     this.ttsQueue.stopCurrent();
   }
   
-  private async isProfileEnabled(profileId: string): Promise<boolean> {
-    return await this.settings.getProfileEnabled(profileId);
+  // New API methods for web service
+  async pausePlayback(): Promise<void> {
+    this.ttsQueue.pauseCurrent();
+  }
+  
+  async resumePlayback(): Promise<void> {
+    this.ttsQueue.resumeCurrent();
+  }
+  
+  async stopPlayback(): Promise<void> {
+    this.ttsQueue.stopCurrent();
+    this.ttsQueue.clearQueue();
+  }
+  
+  async skipCurrent(): Promise<void> {
+    this.ttsQueue.skipCurrent();
+  }
+  
+  async getProfiles(): Promise<any[]> {
+    if (!this.config) return [];
+    
+    const profiles = this.config.profiles.map((profile) => ({
+      id: profile.id,
+      name: profile.name || profile.id,
+      enabled: this.isProfileEnabled(profile.id),
+      icon: profile.icon
+    }));
+    
+    return profiles;
+  }
+  
+  async setProfileEnabled(profileId: string, enabled: boolean): Promise<void> {
+    await this.toggleProfile(profileId, enabled);
+  }
+  
+  async replayLog(logId: number): Promise<void> {
+    const log = this.database.getTTSLog().getLogById(logId);
+    if (log) {
+      this.ttsQueue.addToQueue({
+        profile: log.profile,
+        originalText: log.original_text,
+        filteredText: log.filtered_text,
+        filepath: log.file_path,
+        timestamp: Date.now()
+      });
+    }
+  }
+  
+  async getStatus(): Promise<any> {
+    const isMuted = this.settings.getMuteAll();
+    const profiles = await this.getProfiles();
+    const queueSize = this.ttsQueue.getQueueSize();
+    const isPlaying = this.ttsQueue.isCurrentlyPlaying();
+    
+    return {
+      muted: isMuted,
+      profiles,
+      queue: {
+        size: queueSize,
+        isPlaying
+      }
+    };
+  }
+  
+  async isMuted(): Promise<boolean> {
+    return this.settings.getMuteAll();
+  }
+  
+  async setMuted(muted: boolean): Promise<void> {
+    await this.toggleMute(muted);
+  }
+  
+  async reloadConfig(): Promise<void> {
+    // This will be called by the server when config changes are detected
+    // The server's configLoader will handle the actual reload
+    this.emit('config-reload-requested');
+  }
+  
+  private isProfileEnabled(profileId: string): boolean {
+    return this.settings.getProfileEnabled(profileId);
   }
   
   async shutdown(): Promise<void> {
