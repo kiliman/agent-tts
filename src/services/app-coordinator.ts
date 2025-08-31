@@ -49,7 +49,9 @@ export class AppCoordinator extends EventEmitter {
         filePath: message.filename,
         originalText: message.originalText,
         filteredText: message.filteredText,
-        status: 'queued'
+        status: 'queued',
+        avatarUrl: message.profileConfig?.ttsService?.avatarUrl,
+        voiceName: message.profileConfig?.ttsService?.voiceName
       };
       this.emit('log-added', logEntry);
       

@@ -9,6 +9,8 @@ interface LogEntry {
   filteredText: string;
   status: 'queued' | 'played' | 'error';
   filePath: string;
+  avatarUrl?: string;
+  voiceName?: string;
 }
 
 interface LogViewerProps {
@@ -84,8 +86,16 @@ export function LogViewer({ logs, onRefresh }: LogViewerProps) {
           [...logs].reverse().map((log) => (
             <div key={log.id} className={`log-entry ${log.status}`}>
               <div className="log-entry-header">
+                {log.avatarUrl && (
+                  <img 
+                    src={log.avatarUrl} 
+                    alt={log.voiceName || log.profile} 
+                    className="log-avatar"
+                    title={log.voiceName || log.profile}
+                  />
+                )}
                 <span className="status-icon">{getStatusIcon(log.status)}</span>
-                <span className="profile-badge">{log.profile}</span>
+                <span className="profile-badge">{log.voiceName || log.profile}</span>
                 <span className="timestamp">{formatTimestamp(log.timestamp)}</span>
                 
                 <div className="log-actions">

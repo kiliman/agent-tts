@@ -32,6 +32,8 @@ export interface TTSServiceConfig {
   voiceId?: string;
   model?: string;
   baseUrl?: string;
+  avatarUrl?: string;  // URL to avatar image (PNG/JPG)
+  voiceName?: string;  // Display name for the voice
   options?: Record<string, any>;
 }
 
