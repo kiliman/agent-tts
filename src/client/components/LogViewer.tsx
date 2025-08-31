@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import './LogViewer.css';
+import React, { useState, useRef, useEffect } from "react";
+import clsx from "clsx";
 
 interface LogEntry {
   id: number;
@@ -7,7 +7,7 @@ interface LogEntry {
   profile: string;
   originalText: string;
   filteredText: string;
-  status: 'queued' | 'played' | 'error';
+  status: "queued" | "played" | "error";
   filePath: string;
   avatarUrl?: string;
   voiceName?: string;
@@ -22,7 +22,14 @@ interface LogViewerProps {
   playingId?: number | null;
 }
 
-export function LogViewer({ logs, onRefresh, onPlayEntry, onPause, onStop, playingId }: LogViewerProps) {
+export function LogViewer({
+  logs,
+  onRefresh,
+  onPlayEntry,
+  onPause,
+  onStop,
+  playingId,
+}: LogViewerProps) {
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [autoScroll, setAutoScroll] = useState(true);
   const listRef = useRef<HTMLDivElement>(null);
@@ -31,7 +38,7 @@ export function LogViewer({ logs, onRefresh, onPlayEntry, onPause, onStop, playi
     if (autoScroll && listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
-  }, [logs, autoScroll]);
+  }, [autoScroll]);
 
   const toggleExpand = (id: number) => {
     const newExpanded = new Set(expandedIds);
@@ -45,14 +52,14 @@ export function LogViewer({ logs, onRefresh, onPlayEntry, onPause, onStop, playi
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'queued':
-        return '⏳';
-      case 'played':
-        return '✅';
-      case 'error':
-        return '❌';
+      case "queued":
+        return "⏳";
+      case "played":
+        return "✅";
+      case "error":
+        return "❌";
       default:
-        return '•';
+        return "•";
     }
   };
 
@@ -68,79 +75,122 @@ export function LogViewer({ logs, onRefresh, onPlayEntry, onPause, onStop, playi
   };
 
   return (
-    <div className="log-viewer">
-      <div className="log-viewer-header">
-        <button onClick={onRefresh} className="refresh-button">
+    <div className="flex flex-col h-full">
+      <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+        <button
+          type="button"
+          onClick={onRefresh}
+          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
+        >
           🔄 Refresh
         </button>
-        <label className="auto-scroll-toggle">
+        <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
             checked={autoScroll}
             onChange={(e) => setAutoScroll(e.target.checked)}
+            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
           />
           Auto-scroll
         </label>
       </div>
 
-      <div className="log-list" ref={listRef}>
+      <div className="flex-1 overflow-y-auto p-4" ref={listRef}>
         {logs.length === 0 ? (
-          <div className="empty-state">No log entries yet</div>
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+            No log entries yet
+          </div>
         ) : (
           [...logs].reverse().map((log) => (
-            <div key={log.id} className={`log-entry ${log.status} ${playingId === log.id ? 'playing' : ''}`}>
-              <div className="log-entry-header">
+            <div
+              key={log.id}
+              className={clsx(
+                "mb-3 bg-white dark:bg-gray-800 border rounded-lg overflow-hidden transition-all",
+                {
+                  "border-red-500 dark:border-red-400": log.status === "error",
+                  "border-green-500 dark:border-green-400":
+                    log.status === "played",
+                  "border-blue-500 dark:border-blue-400":
+                    log.status === "queued",
+                  "border-green-500 dark:border-green-400 shadow-lg shadow-green-500/20 animate-pulse bg-gradient-to-r from-green-50 to-transparent dark:from-green-900/20":
+                    playingId === log.id,
+                  "border-gray-200 dark:border-gray-700":
+                    log.status !== "error" &&
+                    log.status !== "played" &&
+                    log.status !== "queued" &&
+                    playingId !== log.id,
+                }
+              )}
+            >
+              <div className="p-3 flex items-center gap-3 bg-gray-50 dark:bg-gray-900">
                 {log.avatarUrl && (
-                  <img 
-                    src={log.avatarUrl} 
-                    alt={log.voiceName || log.profile} 
-                    className="log-avatar"
+                  <img
+                    src={log.avatarUrl}
+                    alt={log.voiceName || log.profile}
+                    className="w-16 h-16 rounded-full object-cover border-2 border-blue-500 flex-shrink-0"
                     title={log.voiceName || log.profile}
                   />
                 )}
-                <span className="status-icon">{getStatusIcon(log.status)}</span>
-                <span className="profile-badge">{log.voiceName || log.profile}</span>
-                <span className="timestamp">{formatTimestamp(log.timestamp)}</span>
-                
-                <div className="log-actions">
+                <span className="text-base">{getStatusIcon(log.status)}</span>
+                <span className="px-2 py-0.5 bg-blue-600 text-white rounded-full text-xs font-semibold">
+                  {log.voiceName || log.profile}
+                </span>
+                <span className="text-gray-500 dark:text-gray-400 text-xs ml-auto">
+                  {formatTimestamp(log.timestamp)}
+                </span>
+
+                <div className="flex gap-2">
                   <button
+                    type="button"
                     onClick={() => handlePlay(log.id)}
-                    className="play-button"
+                    className="px-2 py-1 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                     title="Replay"
                     disabled={playingId === log.id}
                   >
-                    {playingId === log.id ? '⏸️' : '▶️'}
+                    {playingId === log.id ? "⏸️" : "▶️"}
                   </button>
                   <button
+                    type="button"
                     onClick={() => toggleExpand(log.id)}
-                    className="expand-button"
+                    className="px-2 py-1 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-sm transition-colors"
                   >
-                    {expandedIds.has(log.id) ? '⌃' : '⌄'}
+                    {expandedIds.has(log.id) ? "⌃" : "⌄"}
                   </button>
                 </div>
               </div>
 
-              <div className="log-entry-content">
-                <div className="log-text">
-                  {expandedIds.has(log.id) ? log.originalText : (
-                    log.originalText.length > 100 
-                      ? log.originalText.substring(0, 100) + '...'
-                      : log.originalText
-                  )}
+              <div className="p-3">
+                <div className="text-gray-900 dark:text-gray-100 font-mono text-sm leading-relaxed">
+                  {expandedIds.has(log.id)
+                    ? log.originalText
+                    : log.originalText.length > 100
+                    ? `${log.originalText.substring(0, 100)}...`
+                    : log.originalText}
                 </div>
 
                 {expandedIds.has(log.id) && (
-                  <div className="log-details">
-                    <div className="detail-section">
-                      <strong>Original Text:</strong>
-                      <pre>{log.originalText}</pre>
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="mb-3">
+                      <strong className="block mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase">
+                        Original Text:
+                      </strong>
+                      <pre className="bg-gray-100 dark:bg-gray-900 p-2 rounded text-xs font-mono whitespace-pre-wrap break-words overflow-x-auto">
+                        {log.originalText}
+                      </pre>
                     </div>
-                    <div className="detail-section">
-                      <strong>Filtered Text (Sent to TTS):</strong>
-                      <pre>{log.filteredText}</pre>
+                    <div className="mb-3">
+                      <strong className="block mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase">
+                        Filtered Text (Sent to TTS):
+                      </strong>
+                      <pre className="bg-gray-100 dark:bg-gray-900 p-2 rounded text-xs font-mono whitespace-pre-wrap break-words overflow-x-auto">
+                        {log.filteredText}
+                      </pre>
                     </div>
-                    <div className="detail-section">
-                      <strong>File:</strong> {log.filePath}
+                    <div className="mb-3">
+                      <strong className="block mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase">
+                        File:
+                      </strong>
+                      <span className="text-sm">{log.filePath}</span>
                     </div>
                   </div>
                 )}

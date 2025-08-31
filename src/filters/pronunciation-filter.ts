@@ -54,6 +54,7 @@ export class PronunciationFilter extends BaseFilter {
     ["^", "caret"],
     ["&", "and"],
     ["*", "asterisk"],
+    ["vite", "veet"],
   ]);
 
   constructor() {

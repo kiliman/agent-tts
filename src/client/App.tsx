@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LogViewer } from './components/LogViewer';
 import { apiClient, wsClient } from './services/api';
-import './App.css';
+import clsx from 'clsx';
 
 export function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -106,21 +106,26 @@ export function App() {
   };
 
   return (
-    <div className={`app ${theme}`}>
-      <header className="app-header">
-        <h1>Agent TTS - Log Viewer</h1>
-        <div className="connection-status">
+    <div className={clsx('flex flex-col h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100', {
+      'dark': theme === 'dark'
+    })}>
+      <header className="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <h1 className="text-xl font-semibold">Agent TTS - Log Viewer</h1>
+        <div className={clsx('flex items-center gap-2 text-sm', {
+          'text-green-600 dark:text-green-400': connected,
+          'text-red-600 dark:text-red-400': !connected
+        })}>
           {connected ? '🟢 Connected' : '🔴 Disconnected'}
         </div>
       </header>
       
       {error && (
-        <div className="error-banner">
+        <div className="bg-red-500 text-white px-6 py-3 flex items-center gap-2">
           <span>⚠️ {error}</span>
         </div>
       )}
       
-      <main className="app-main">
+      <main className="flex-1 overflow-hidden">
         <LogViewer 
           logs={logs} 
           onRefresh={loadLogs}
