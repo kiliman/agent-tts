@@ -159,13 +159,41 @@ export class TTSQueueProcessor extends EventEmitter {
   }
   
   stopCurrent(): void {
+    // Stop the audio if playing
+    if (this.currentlyPlaying) {
+      try {
+        const ttsService = this.getTTSService(this.currentlyPlaying.profileConfig);
+        ttsService.stop();
+      } catch (err) {
+        console.error('[TTSQueue] Error stopping audio:', err);
+      }
+    }
+    
     this.queue = [];
     this.currentlyPlaying = null;
     this.emit('stopped');
   }
   
   pauseCurrent(): void {
-    // For now, we'll just stop - actual pause would require audio player control
+    console.log('[TTSQueue] pauseCurrent called');
+    if (this.currentlyPlaying) {
+      console.log('[TTSQueue] Stopping currently playing audio');
+      
+      // Get the TTS service and stop it
+      try {
+        const ttsService = this.getTTSService(this.currentlyPlaying.profileConfig);
+        ttsService.stop();
+        console.log('[TTSQueue] Audio stopped successfully');
+      } catch (err) {
+        console.error('[TTSQueue] Error stopping audio:', err);
+      }
+      
+      // Clear the current playing state and queue
+      this.currentlyPlaying = null;
+      this.queue = [];
+    } else {
+      console.log('[TTSQueue] No audio currently playing to pause');
+    }
     this.emit('paused');
   }
   

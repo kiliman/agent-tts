@@ -112,10 +112,12 @@ export function ProfileLogViewer({
   };
 
   const handlePausePlayback = async () => {
+    console.log('[ProfileLogViewer] handlePausePlayback called');
     try {
-      await apiClient.pausePlayback();
+      const response = await apiClient.pausePlayback();
+      console.log('[ProfileLogViewer] Pause response:', response);
     } catch (err) {
-      console.error('Failed to pause playback:', err);
+      console.error('[ProfileLogViewer] Failed to pause playback:', err);
     }
   };
 

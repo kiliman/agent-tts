@@ -143,10 +143,17 @@ export function LogViewer({
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => handlePlay(log.id)}
-                    className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                    title="Replay"
-                    disabled={playingId === log.id}
+                    onClick={() => {
+                      if (playingId === log.id && onPause) {
+                        console.log(`[LogViewer] Pausing playback for log ID: ${log.id}`);
+                        onPause();
+                      } else {
+                        console.log(`[LogViewer] Starting playback for log ID: ${log.id}`);
+                        handlePlay(log.id);
+                      }
+                    }}
+                    className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded transition-colors"
+                    title={playingId === log.id ? "Pause" : "Play"}
                   >
                     {playingId === log.id ? 
                       <Pause className="w-4 h-4" /> : 

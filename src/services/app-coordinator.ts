@@ -203,7 +203,13 @@ export class AppCoordinator extends EventEmitter {
 
   // New API methods for web service
   async pausePlayback(): Promise<void> {
+    console.log('[AppCoordinator] pausePlayback called');
     this.ttsQueue.pauseCurrent();
+    // Emit status change to clear the playing state in UI
+    this.emit('status-changed', {
+      playing: false,
+      playedId: null
+    });
   }
 
   async resumePlayback(): Promise<void> {
