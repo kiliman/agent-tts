@@ -43,8 +43,24 @@ export function ProfileLogViewer({
       console.log('Status changed:', data);
       if (data.playing && data.playingId) {
         setPlayingId(data.playingId);
+        // Update the log entry status to 'playing' (in case it was queued)
+        setLogs(prevLogs => 
+          prevLogs.map(log => 
+            log.id === data.playingId 
+              ? { ...log, status: 'playing' }
+              : log
+          )
+        );
       } else if (!data.playing && data.playedId) {
         setPlayingId(null);
+        // Update the log entry status to 'played'
+        setLogs(prevLogs => 
+          prevLogs.map(log => 
+            log.id === data.playedId 
+              ? { ...log, status: 'played' }
+              : log
+          )
+        );
       }
     };
     

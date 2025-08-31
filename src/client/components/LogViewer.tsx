@@ -52,7 +52,19 @@ export function LogViewer({
     if (autoScroll && listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
-  }, [autoScroll]);
+  }, [logs, autoScroll]);
+
+  // Scroll when a new item starts playing
+  useEffect(() => {
+    if (autoScroll && playingId && listRef.current) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        if (listRef.current) {
+          listRef.current.scrollTop = listRef.current.scrollHeight;
+        }
+      }, 100);
+    }
+  }, [playingId, autoScroll]);
 
   const toggleExpand = (id: number) => {
     const newExpanded = new Set(expandedIds);
