@@ -41,6 +41,18 @@ export class AppCoordinator extends EventEmitter {
       console.log(`[AppCoordinator] Message queued for TTS from profile: ${message.profile}`);
       console.log(`[AppCoordinator] Text: ${message.filteredText.substring(0, 100)}${message.filteredText.length > 100 ? '...' : ''}`);
       
+      // Emit log-added event for WebSocket clients
+      const logEntry = {
+        id: message.id,
+        timestamp: message.timestamp,
+        profile: message.profile,
+        filePath: message.filename,
+        originalText: message.originalText,
+        filteredText: message.filteredText,
+        status: 'queued'
+      };
+      this.emit('log-added', logEntry);
+      
       // Check if profile is enabled and not muted
       const isEnabled = this.isProfileEnabled(message.profile);
       console.log(`[AppCoordinator] Profile ${message.profile} enabled: ${isEnabled}`);
@@ -56,11 +68,13 @@ export class AppCoordinator extends EventEmitter {
     this.ttsQueue.on('playing', (message) => {
       console.log(`[AppCoordinator] TTS playing: ${message.filteredText.substring(0, 50)}...`);
       this.emit('ttsPlaying', message);
+      this.emit('status-changed', { playing: true, currentMessage: message });
     });
     
     this.ttsQueue.on('played', (message) => {
       console.log(`[AppCoordinator] TTS played successfully`);
       this.emit('ttsPlayed', message);
+      this.emit('status-changed', { playing: false });
     });
     
     this.ttsQueue.on('error', ({ message, error }) => {

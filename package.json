@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
-    "dev:server": "tsx src/server/main.ts",
+    "dev:server": "tsx watch src/server/main.ts",
     "dev:client": "vite",
     "build": "npm run build:client && npm run build:server",
     "build:server": "tsc -p tsconfig.server.json",
