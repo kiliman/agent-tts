@@ -15,11 +15,13 @@ interface LogEntry {
 
 interface LogViewerProps {
   logs: LogEntry[];
-  onRefresh: () => void;
+  onRefresh?: () => void;
   onPlayEntry?: (id: number) => void;
   onPause?: () => void;
   onStop?: () => void;
   playingId?: number | null;
+  autoScroll?: boolean;
+  showControls?: boolean;
 }
 
 export function LogViewer({
@@ -29,10 +31,15 @@ export function LogViewer({
   onPause,
   onStop,
   playingId,
+  autoScroll: autoScrollProp = true,
+  showControls = true,
 }: LogViewerProps) {
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
-  const [autoScroll, setAutoScroll] = useState(true);
+  const [autoScrollLocal, setAutoScrollLocal] = useState(autoScrollProp);
   const listRef = useRef<HTMLDivElement>(null);
+  
+  // Use prop autoScroll if showControls is false, otherwise use local state
+  const autoScroll = showControls ? autoScrollLocal : autoScrollProp;
 
   useEffect(() => {
     if (autoScroll && listRef.current) {
@@ -76,24 +83,26 @@ export function LogViewer({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-        <button
-          type="button"
-          onClick={onRefresh}
-          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
-        >
-          🔄 Refresh
-        </button>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={autoScroll}
-            onChange={(e) => setAutoScroll(e.target.checked)}
-            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-          />
-          Auto-scroll
-        </label>
-      </div>
+      {showControls && (
+        <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
+          >
+            🔄 Refresh
+          </button>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={autoScrollLocal}
+              onChange={(e) => setAutoScrollLocal(e.target.checked)}
+              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+            />
+            Auto-scroll
+          </label>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto p-4" ref={listRef}>
         {logs.length === 0 ? (

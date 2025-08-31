@@ -1,10 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { LogViewer } from './LogViewer';
 import { apiClient, wsClient } from '../services/api';
-import clsx from 'clsx';
 
-export function ProfileLogViewer() {
+interface ProfileLogViewerProps {
+  refreshTrigger?: number;
+  autoScroll?: boolean;
+  onRefresh?: () => void;
+  onAutoScrollChange?: (value: boolean) => void;
+}
+
+export function ProfileLogViewer({ 
+  refreshTrigger = 0, 
+  autoScroll = true,
+  onRefresh,
+  onAutoScrollChange
+}: ProfileLogViewerProps) {
   const { profile } = useParams<{ profile: string }>();
   const [logs, setLogs] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +27,7 @@ export function ProfileLogViewer() {
       loadLogs();
       loadProfileInfo();
     }
-  }, [profile]);
+  }, [profile, refreshTrigger]);
 
   useEffect(() => {
     // WebSocket event handlers for real-time updates
@@ -100,54 +111,60 @@ export function ProfileLogViewer() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link 
-              to="/" 
-              className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-            >
-              ← Back to Dashboard
-            </Link>
-            
-            {profileInfo && (
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                {profileInfo.name || profile}
-              </h2>
-            )}
-          </div>
-          
-          {profileInfo && (
+      {profileInfo && (
+        <div className="px-6 py-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {profileInfo.profileUrl || profileInfo.avatarUrl ? (
-                <div className="text-right">
-                  <img 
-                    src={profileInfo.profileUrl || profileInfo.avatarUrl} 
-                    alt={profileInfo.name}
-                    className="h-20 w-20 rounded-lg object-cover"
-                  />
-                  {profileInfo.voiceName && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {profileInfo.voiceName}
-                    </p>
-                  )}
-                </div>
+                <img 
+                  src={profileInfo.profileUrl || profileInfo.avatarUrl} 
+                  alt={profileInfo.name}
+                  className="h-20 w-20 rounded-lg object-cover"
+                />
               ) : (
-                <div className="text-center">
-                  <div className="h-20 w-20 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-4xl">
-                    {profileInfo.icon || '🤖'}
-                  </div>
-                  {profileInfo.voiceName && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {profileInfo.voiceName}
-                    </p>
-                  )}
+                <div className="h-20 w-20 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-4xl">
+                  {profileInfo.icon || '🤖'}
                 </div>
               )}
+              
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  {profileInfo.name || profile}
+                </h2>
+                {profileInfo.voiceName && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Voice: {profileInfo.voiceName}
+                  </p>
+                )}
+              </div>
             </div>
-          )}
+            
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  loadLogs();
+                  if (onRefresh) onRefresh();
+                }}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
+              >
+                🔄 Refresh
+              </button>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={autoScroll}
+                  onChange={(e) => {
+                    if (onAutoScrollChange) onAutoScrollChange(e.target.checked);
+                  }}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                />
+                Auto-scroll
+              </label>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
       
       {error && (
         <div className="bg-red-500 text-white px-6 py-3 flex items-center gap-2">
@@ -158,11 +175,12 @@ export function ProfileLogViewer() {
       <div className="flex-1 overflow-hidden">
         <LogViewer 
           logs={logs} 
-          onRefresh={loadLogs}
           onPlayEntry={handlePlayEntry}
           onPause={handlePausePlayback}
           onStop={handleStopPlayback}
           playingId={playingId}
+          autoScroll={autoScroll}
+          showControls={false}
         />
       </div>
     </div>
