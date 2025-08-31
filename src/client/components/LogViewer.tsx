@@ -1,9 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import clsx from "clsx";
 import { 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
   Play, 
   Pause, 
   ChevronDown, 
@@ -67,19 +64,6 @@ export function LogViewer({
     setExpandedIds(newExpanded);
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "queued":
-        return <Clock className="w-4 h-4 text-blue-500" />;
-      case "played":
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case "error":
-        return <XCircle className="w-4 h-4 text-red-500" />;
-      default:
-        return <div className="w-4 h-4 rounded-full bg-gray-400" />;
-    }
-  };
-
   const formatTimestamp = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString();
@@ -136,11 +120,13 @@ export function LogViewer({
               )}
             >
               <div className="p-3 flex items-center gap-3">
-                <span className="flex-shrink-0">{getStatusIcon(log.status)}</span>
                 <span className="text-gray-500 dark:text-gray-400 text-xs">
                   {formatTimestamp(log.timestamp)}
                 </span>
-                <div className="flex-1 text-gray-900 dark:text-gray-100 text-sm truncate">
+                <div className={clsx("flex-1 text-sm truncate", {
+                  "text-gray-400 dark:text-gray-500": log.status === "queued",
+                  "text-gray-900 dark:text-gray-100": log.status !== "queued"
+                })}>
                   {expandedIds.has(log.id)
                     ? "Click to collapse..."
                     : log.filteredText}
