@@ -50,8 +50,13 @@ async function startServer() {
     if (process.env.NODE_ENV === 'production') {
       const clientPath = path.join(__dirname, '../../dist/client');
       app.use(express.static(clientPath));
+      
+      // Fallback to index.html for client-side routing
       app.get('*', (req, res) => {
-        res.sendFile(path.join(clientPath, 'index.html'));
+        // Don't serve index.html for API routes or static assets
+        if (!req.path.startsWith('/api') && !req.path.match(/\.\w+$/)) {
+          res.sendFile(path.join(clientPath, 'index.html'));
+        }
       });
     }
 

@@ -26,7 +26,7 @@ export function setupWebSocket(wss: WebSocketServer, coordinator: AppCoordinator
             break;
             
           case 'get-logs':
-            const logs = await coordinator.database.getTTSLog().getRecentLogs(50);
+            const logs = await coordinator.getLogsWithAvatars(50);
             ws.send(JSON.stringify({ type: 'logs', data: logs }));
             break;
             

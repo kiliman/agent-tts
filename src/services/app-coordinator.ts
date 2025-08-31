@@ -198,7 +198,9 @@ export class AppCoordinator extends EventEmitter {
       id: profile.id,
       name: profile.name || profile.id,
       enabled: this.isProfileEnabled(profile.id),
-      icon: profile.icon
+      icon: profile.icon,
+      avatarUrl: profile.ttsService?.avatarUrl,
+      voiceName: profile.ttsService?.voiceName
     }));
     
     return profiles;
@@ -206,6 +208,20 @@ export class AppCoordinator extends EventEmitter {
   
   async setProfileEnabled(profileId: string, enabled: boolean): Promise<void> {
     await this.toggleProfile(profileId, enabled);
+  }
+  
+  async getLogsWithAvatars(limit: number = 50): Promise<any[]> {
+    const logs = this.database.getTTSLog().getRecentLogs(limit);
+    
+    // Enrich logs with avatar info from config
+    return logs.map(log => {
+      const profile = this.config?.profiles.find(p => p.id === log.profile);
+      return {
+        ...log,
+        avatarUrl: profile?.ttsService?.avatarUrl,
+        voiceName: profile?.ttsService?.voiceName
+      };
+    });
   }
   
   async replayLog(logId: number): Promise<void> {
