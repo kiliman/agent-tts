@@ -10,12 +10,12 @@ export interface ProfileConfig {
 }
 
 export interface ParserConfig {
-  type: 'claude-code' | 'opencode' | 'custom';
+  type: "claude-code" | "opencode" | "custom";
   customParser?: (content: string) => ParsedMessage[];
 }
 
 export interface ParsedMessage {
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
   timestamp?: Date;
 }
@@ -27,13 +27,14 @@ export interface FilterConfig {
 }
 
 export interface TTSServiceConfig {
-  type: 'elevenlabs' | 'openai' | 'custom';
+  type: "elevenlabs" | "openai" | "custom";
   apiKey?: string;
   voiceId?: string;
   model?: string;
   baseUrl?: string;
-  avatarUrl?: string;  // URL to avatar image (PNG/JPG)
-  voiceName?: string;  // Display name for the voice
+  avatarUrl?: string; // URL to avatar image (PNG/JPG)
+  profileUrl?: string; // URL to profile image (PNG/JPG)
+  voiceName?: string; // Display name for the voice
   options?: Record<string, any>;
 }
 
@@ -59,7 +60,7 @@ export interface TTSQueueEntry {
   profile: string;
   originalText: string;
   filteredText: string;
-  state: 'queued' | 'playing' | 'played' | 'error';
+  state: "queued" | "playing" | "played" | "error";
   apiResponseStatus?: number;
   apiResponseMessage?: string;
   processingTime?: number;

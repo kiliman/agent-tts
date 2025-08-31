@@ -114,6 +114,10 @@ export class TTSLogRepository {
     return this.getRecentEntries(limit);
   }
 
+  getLogsByProfile(profile: string, limit: number = 50): TTSLogRecord[] {
+    return this.getEntriesByProfile(profile, limit);
+  }
+
   getEntriesByStatus(status: 'queued' | 'played' | 'error', limit: number = 50): TTSLogRecord[] {
     const rows = this.db.prepare(`
       SELECT 

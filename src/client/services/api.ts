@@ -42,8 +42,15 @@ class ApiClient {
   }
 
   // Logs
-  async getLogs(limit: number = 50) {
-    const response = await axios.get(`${this.baseURL}/logs`, { params: { limit } });
+  async getLogs(limit: number = 50, profile?: string) {
+    const params: any = { limit };
+    if (profile) params.profile = profile;
+    const response = await axios.get(`${this.baseURL}/logs`, { params });
+    return response.data;
+  }
+
+  async getLatestLogsPerProfile() {
+    const response = await axios.get(`${this.baseURL}/logs/latest-per-profile`);
     return response.data;
   }
 

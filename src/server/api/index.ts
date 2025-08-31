@@ -64,8 +64,19 @@ export function setupApiRoutes(app: Express, coordinator: AppCoordinator) {
   app.get('/api/logs', async (req: Request, res: Response) => {
     try {
       const limit = parseInt(req.query.limit as string) || 50;
-      const logs = await coordinator.getLogsWithAvatars(limit);
+      const profile = req.query.profile as string | undefined;
+      const logs = await coordinator.getLogsWithAvatars(limit, profile);
       res.json({ success: true, logs });
+    } catch (error) {
+      res.status(500).json({ success: false, error: (error as Error).message });
+    }
+  });
+
+  // Get last message per profile for dashboard
+  app.get('/api/logs/latest-per-profile', async (req: Request, res: Response) => {
+    try {
+      const latestLogs = await coordinator.getLatestLogsPerProfile();
+      res.json({ success: true, logs: latestLogs });
     } catch (error) {
       res.status(500).json({ success: false, error: (error as Error).message });
     }
