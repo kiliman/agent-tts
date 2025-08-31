@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import clsx from "clsx";
+import { ToggleSwitch } from './ToggleSwitch';
 import { 
   Play, 
   Pause, 
@@ -94,20 +95,16 @@ export function LogViewer({
           <button
             type="button"
             onClick={onRefresh}
-            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors flex items-center gap-1.5"
+            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors inline-flex items-center gap-1.5"
           >
             <RefreshCw className="w-4 h-4" />
             Refresh
           </button>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={autoScrollLocal}
-              onChange={(e) => setAutoScrollLocal(e.target.checked)}
-              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-            />
-            Auto-scroll
-          </label>
+          <ToggleSwitch
+            checked={autoScrollLocal}
+            onChange={setAutoScrollLocal}
+            label="Auto-scroll"
+          />
         </div>
       )}
 

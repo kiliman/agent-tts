@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { LogViewer } from './LogViewer';
+import { ToggleSwitch } from './ToggleSwitch';
 import { apiClient, wsClient } from '../services/api';
 import { RefreshCw, Bot, AlertCircle } from 'lucide-react';
 
@@ -156,29 +157,25 @@ export function ProfileLogViewer({
               </div>
             </div>
             
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 items-end">
               <button
                 type="button"
                 onClick={() => {
                   loadLogs();
                   if (onRefresh) onRefresh();
                 }}
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors flex items-center gap-1.5"
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors inline-flex items-center gap-1.5"
               >
                 <RefreshCw className="w-4 h-4" />
                 Refresh
               </button>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={autoScroll}
-                  onChange={(e) => {
-                    if (onAutoScrollChange) onAutoScrollChange(e.target.checked);
-                  }}
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                />
-                Auto-scroll
-              </label>
+              <ToggleSwitch
+                checked={autoScroll}
+                onChange={(checked) => {
+                  if (onAutoScrollChange) onAutoScrollChange(checked);
+                }}
+                label="Auto-scroll"
+              />
             </div>
           </div>
         </div>
