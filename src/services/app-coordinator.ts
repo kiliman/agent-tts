@@ -70,13 +70,20 @@ export class AppCoordinator extends EventEmitter {
     this.ttsQueue.on('playing', (message) => {
       console.log(`[AppCoordinator] TTS playing: ${message.filteredText.substring(0, 50)}...`);
       this.emit('ttsPlaying', message);
-      this.emit('status-changed', { playing: true, currentMessage: message });
+      this.emit('status-changed', { 
+        playing: true, 
+        playingId: message.id,
+        currentMessage: message 
+      });
     });
     
     this.ttsQueue.on('played', (message) => {
       console.log(`[AppCoordinator] TTS played successfully`);
       this.emit('ttsPlayed', message);
-      this.emit('status-changed', { playing: false });
+      this.emit('status-changed', { 
+        playing: false,
+        playedId: message.id 
+      });
     });
     
     this.ttsQueue.on('error', ({ message, error }) => {

@@ -8,6 +8,7 @@ export function App() {
   const [logs, setLogs] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
+  const [playingId, setPlayingId] = useState<number | null>(null);
 
   useEffect(() => {
     // Detect system theme
@@ -52,6 +53,11 @@ export function App() {
     
     wsClient.on('status-changed', (data: any) => {
       console.log('Status changed:', data);
+      if (data.playing && data.playingId) {
+        setPlayingId(data.playingId);
+      } else if (!data.playing && data.playedId) {
+        setPlayingId(null);
+      }
     });
     
     // Cleanup
@@ -121,6 +127,7 @@ export function App() {
           onPlayEntry={handlePlayEntry}
           onPause={handlePausePlayback}
           onStop={handleStopPlayback}
+          playingId={playingId}
         />
       </main>
     </div>

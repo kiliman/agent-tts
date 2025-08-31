@@ -66,6 +66,24 @@
   border-color: var(--accent);
 }
 
+.log-entry.playing {
+  animation: pulse 2s ease-in-out infinite;
+  border-color: #4caf50;
+  background: linear-gradient(90deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.05) 100%);
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 10px 5px rgba(76, 175, 80, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4);
+  }
+}
+
 .log-entry-header {
   padding: 12px;
   display: flex;
@@ -117,9 +135,14 @@
   font-size: 14px;
 }
 
-.play-button:hover,
+.play-button:hover:not(:disabled),
 .expand-button:hover {
   background: var(--bg-primary);
+}
+
+.play-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .log-entry-content {

@@ -16,9 +16,13 @@ interface LogEntry {
 interface LogViewerProps {
   logs: LogEntry[];
   onRefresh: () => void;
+  onPlayEntry?: (id: number) => void;
+  onPause?: () => void;
+  onStop?: () => void;
+  playingId?: number | null;
 }
 
-export function LogViewer({ logs, onRefresh }: LogViewerProps) {
+export function LogViewer({ logs, onRefresh, onPlayEntry, onPause, onStop, playingId }: LogViewerProps) {
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [autoScroll, setAutoScroll] = useState(true);
   const listRef = useRef<HTMLDivElement>(null);
@@ -58,8 +62,8 @@ export function LogViewer({ logs, onRefresh }: LogViewerProps) {
   };
 
   const handlePlay = (id: number) => {
-    if (window.electronAPI) {
-      window.electronAPI.playEntry(id);
+    if (onPlayEntry) {
+      onPlayEntry(id);
     }
   };
 
@@ -84,7 +88,7 @@ export function LogViewer({ logs, onRefresh }: LogViewerProps) {
           <div className="empty-state">No log entries yet</div>
         ) : (
           [...logs].reverse().map((log) => (
-            <div key={log.id} className={`log-entry ${log.status}`}>
+            <div key={log.id} className={`log-entry ${log.status} ${playingId === log.id ? 'playing' : ''}`}>
               <div className="log-entry-header">
                 {log.avatarUrl && (
                   <img 
@@ -103,8 +107,9 @@ export function LogViewer({ logs, onRefresh }: LogViewerProps) {
                     onClick={() => handlePlay(log.id)}
                     className="play-button"
                     title="Replay"
+                    disabled={playingId === log.id}
                   >
-                    ▶️
+                    {playingId === log.id ? '⏸️' : '▶️'}
                   </button>
                   <button
                     onClick={() => toggleExpand(log.id)}
