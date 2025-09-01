@@ -24,7 +24,7 @@ export class PronunciationFilter extends BaseFilter {
     ["ide", "I D E"],
     ["os", "O S"],
     ["io", "I O"],
-    ["tts", "tee tee ess"],
+    ["tts", "tee-tee-ess"],
     ["async", "a sync"],
     ["sync", "sink"],
     ["regex", "regh ex"],
@@ -69,7 +69,7 @@ export class PronunciationFilter extends BaseFilter {
     // Handle version numbers and dotted numbers (e.g., "0.1.0" -> "0 dot 1 dot 0")
     // Matches numbers separated by dots (e.g., 1.2.3, 0.1.0, 192.168.1.1)
     content = content.replace(/\b(\d+)\.(\d+(?:\.\d+)*)\b/g, (match) => {
-      return match.split('.').join(' dot ');
+      return match.split(".").join(" dot ");
     });
 
     for (const [original, replacement] of this.replacements) {
