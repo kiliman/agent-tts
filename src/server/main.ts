@@ -5,6 +5,7 @@ import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import os from 'os';
 import { initializeDatabase } from '../database/schema.js';
 import { ConfigLoader } from '../config/loader.js';
 import { AppCoordinator } from '../services/app-coordinator.js';
@@ -50,6 +51,26 @@ async function startServer() {
 
     // API routes
     setupApiRoutes(app, appCoordinator);
+
+    // Serve user images from ~/.agent-tts/images (takes priority)
+    const userImagesPath = path.join(os.homedir(), '.agent-tts', 'images');
+    if (!fs.existsSync(userImagesPath)) {
+      // Create the directory if it doesn't exist
+      fs.mkdirSync(userImagesPath, { recursive: true });
+      console.log('Created user images directory:', userImagesPath);
+    }
+    // Always mount user images directory (even if empty)
+    console.log('Serving user images from:', userImagesPath);
+    app.use('/images', express.static(userImagesPath));
+    
+    // In development, also serve from public/images as fallback
+    if (process.env.NODE_ENV !== 'production') {
+      const publicImagesPath = path.join(__dirname, '../../public/images');
+      if (fs.existsSync(publicImagesPath)) {
+        console.log('Serving public images from:', publicImagesPath);
+        app.use('/images', express.static(publicImagesPath));
+      }
+    }
 
     // Serve static files
     const clientPath = path.join(__dirname, '../../dist/client');
