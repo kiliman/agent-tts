@@ -1,8 +1,26 @@
 {
   "name": "agent-tts",
-  "version": "1.0.0",
-  "description": "Node.js service that monitors agent chat logs and converts messages to speech",
+  "version": "0.1.0",
+  "description": "Real-time text-to-speech for AI coding assistants - talk with Claude, OpenCode, and other agents",
   "type": "module",
+  "bin": {
+    "agent-tts": "./bin/agent-tts.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "public",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kiliman/agent-tts.git"
+  },
+  "homepage": "https://github.com/kiliman/agent-tts",
+  "bugs": {
+    "url": "https://github.com/kiliman/agent-tts/issues"
+  },
   "scripts": {
     "dev": "npm run build:client && npm run dev:unified",
     "dev:unified": "tsx watch src/server/main.ts",
@@ -10,6 +28,7 @@
     "dev:client": "vite",
     "dev:separate": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "build": "npm run clean && npm run build:client && npm run build:server",
+    "prepublishOnly": "npm run build",
     "build:server": "tsc -p tsconfig.server.json",
     "build:client": "vite build",
     "start": "node dist/server/main.js",
@@ -27,7 +46,7 @@
     "node",
     "express"
   ],
-  "author": "",
+  "author": "Kiliman <kiliman@gmail.com>",
   "license": "MIT",
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.12",
