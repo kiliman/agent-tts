@@ -1,4 +1,4 @@
-import { TTSQueueEntry } from '../../types/config';
+import { TTSQueueEntry } from '../../types/config.js';
 
 export abstract class BaseTTSService {
   protected apiKey: string;

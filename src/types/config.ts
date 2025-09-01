@@ -27,7 +27,7 @@ export interface FilterConfig {
 }
 
 export interface TTSServiceConfig {
-  type: "elevenlabs" | "openai" | "custom";
+  type: "elevenlabs" | "openai" | "kokoro" | "openai-compatible" | "custom";
   apiKey?: string;
   voiceId?: string;
   model?: string;
@@ -35,7 +35,18 @@ export interface TTSServiceConfig {
   avatarUrl?: string; // URL to avatar image (PNG/JPG)
   profileUrl?: string; // URL to profile image (PNG/JPG)
   voiceName?: string; // Display name for the voice
-  options?: Record<string, any>;
+  options?: {
+    // ElevenLabs options
+    stability?: number;
+    similarityBoost?: number;
+    
+    // OpenAI/Kokoro options
+    speed?: number;
+    responseFormat?: 'mp3' | 'opus' | 'aac' | 'flac' | 'wav' | 'pcm';
+    
+    // Any additional provider-specific options
+    [key: string]: any;
+  };
 }
 
 export interface AgentTTSConfig {

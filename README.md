@@ -10,7 +10,7 @@ Real-time text-to-speech for AI coding assistants. Talk with Claude, OpenCode, a
 - 🤖 **Multi-agent support**: Works with Claude Code, OpenCode, and custom agents
 - ⏯️ **Playback controls**: Pause, stop, skip messages
 - 🎨 **Beautiful UI**: Modern React interface with dark mode support
-- 🔊 **ElevenLabs integration**: High-quality voice synthesis
+- 🔊 **Multiple TTS providers**: ElevenLabs, OpenAI, Kokoro, and any OpenAI-compatible service
 - ⌨️ **Global hotkeys**: Control playback from anywhere (Ctrl+Esc)
 - 📊 **Message history**: Review and replay past messages
 - 🔄 **Live updates**: WebSocket-powered real-time UI
@@ -25,27 +25,56 @@ npm install -g agent-tts
 
 1. Create a configuration file at `~/.agent-tts/index.js`:
 
+### Using Kokoro (Free, Local)
+
 ```javascript
 export default {
   profiles: [
     {
       id: "claudia",
       name: "Claudia",
-      avatar: "/images/claudia.png",
       enabled: true,
-      parser: "claude-code",
-      watch: ["~/.claude/projects/**/*.jsonl"],
-      tts: {
-        service: "elevenlabs",
+      watchPaths: ["~/.local/share/opencode/project/global/storage/session/message/**"],
+      parser: { type: "opencode" },
+      filters: [],
+      ttsService: {
+        type: "kokoro",
+        baseUrl: "http://localhost:8880/v1", // Your Kokoro instance
+        voiceId: "af_bella", // Available: af_bella, am_michael, bf_emma, bm_george, etc.
+        options: {
+          speed: 1.0,
+          responseFormat: "mp3"
+        }
+      }
+    }
+  ]
+};
+```
+
+### Using ElevenLabs (Cloud, Paid)
+
+```javascript
+export default {
+  profiles: [
+    {
+      id: "claudia",
+      name: "Claudia",
+      enabled: true,
+      watchPaths: ["~/.local/share/opencode/project/global/storage/session/message/**"],
+      parser: { type: "opencode" },
+      filters: [],
+      ttsService: {
+        type: "elevenlabs",
+        apiKey: "YOUR_ELEVENLABS_API_KEY",
         voiceId: "YOUR_VOICE_ID",
         model: "eleven_turbo_v2_5",
-      },
-      filters: ["markdown-cleaner", "pronunciation"],
-    },
-  ],
-  elevenlabs: {
-    apiKey: "YOUR_ELEVENLABS_API_KEY",
-  },
+        options: {
+          stability: 0.5,
+          similarityBoost: 0.75
+        }
+      }
+    }
+  ]
 };
 ```
 
@@ -147,8 +176,12 @@ npm test
 ## Requirements
 
 - Node.js 18+
-- ElevenLabs API key for TTS
 - macOS, Linux, or Windows
+- TTS Provider (one of):
+  - **Kokoro** (free, local) - [GitHub](https://github.com/kokoro-tts/kokoro)
+  - **ElevenLabs** (paid, cloud) - Requires API key
+  - **OpenAI** (paid, cloud) - Requires API key
+  - Any OpenAI-compatible TTS service
 
 ## License
 

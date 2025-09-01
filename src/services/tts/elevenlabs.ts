@@ -1,6 +1,6 @@
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
-import { BaseTTSService } from './base';
-import { TTSServiceConfig } from '../../types/config';
+import { BaseTTSService } from './base.js';
+import { TTSServiceConfig } from '../../types/config.js';
 import { spawn, ChildProcess } from 'child_process';
 import { writeFile, unlink } from 'fs/promises';
 import { tmpdir } from 'os';
