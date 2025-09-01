@@ -1,8 +1,11 @@
-import { BaseFilter } from "./base-filter";
-import { ParsedMessage } from "../types/config";
+import { BaseFilter } from "./base-filter.js";
+import { ParsedMessage } from "../types/config.js";
 
 export class PronunciationFilter extends BaseFilter {
-  private replacements: Map<string, string> = new Map([
+  private replacements: Map<string, string>;
+  
+  // Default replacements for common technical terms
+  private static readonly DEFAULT_REPLACEMENTS = new Map([
     ["git", "ghit"],
     ["github", "ghit hub"],
     ["gif", "jiff"],
@@ -57,8 +60,18 @@ export class PronunciationFilter extends BaseFilter {
     ["vite", "veet"],
   ]);
 
-  constructor() {
+  constructor(customReplacements?: Record<string, string>) {
     super("pronunciation", true);
+    
+    // Start with default replacements
+    this.replacements = new Map(PronunciationFilter.DEFAULT_REPLACEMENTS);
+    
+    // Add/override with custom replacements if provided
+    if (customReplacements) {
+      for (const [key, value] of Object.entries(customReplacements)) {
+        this.replacements.set(key.toLowerCase(), value);
+      }
+    }
   }
 
   filter(message: ParsedMessage): ParsedMessage | null {

@@ -27,7 +27,8 @@ export class FilterChain {
       } else {
         const builtInFilter = this.createBuiltInFilter(
           config.name,
-          config.enabled ?? true
+          config.enabled ?? true,
+          config.options
         );
         if (builtInFilter) {
           this.filters.push(builtInFilter);
@@ -47,11 +48,12 @@ export class FilterChain {
 
   private createBuiltInFilter(
     name: string,
-    enabled: boolean
+    enabled: boolean,
+    options?: any
   ): BaseFilter | null {
     switch (name) {
       case "pronunciation":
-        const pronunciationFilter = new PronunciationFilter();
+        const pronunciationFilter = new PronunciationFilter(options);
         pronunciationFilter.setEnabled(enabled);
         return pronunciationFilter;
 

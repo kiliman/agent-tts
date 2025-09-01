@@ -23,7 +23,8 @@ export interface ParsedMessage {
 export interface FilterConfig {
   name: string;
   enabled?: boolean;
-  filter: (message: ParsedMessage) => ParsedMessage | null;
+  options?: any; // Filter-specific options (e.g., pronunciation replacements)
+  filter?: (message: ParsedMessage) => ParsedMessage | null; // Custom filter function
 }
 
 export interface TTSServiceConfig {

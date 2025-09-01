@@ -113,10 +113,35 @@ Each profile represents an AI agent you want to monitor:
 - `emoji`: Removes emojis so TTS doesn't say "party pooper" when you meant 🎉
 - `filepath`: Simplifies file paths to just the filename or last directory (e.g., "/usr/local/bin/node" → "node")
 - `markdown`: Cleans markdown formatting and adds periods to list items for natural TTS pauses
-- `pronunciation`: Improves pronunciation (e.g., "git" → "ghit")
+- `pronunciation`: Improves pronunciation with customizable replacements (see below)
 - `code-stripper`: Removes code blocks
 - `role`: Filters messages by role (user/assistant/system)
 - Custom filters can be added via configuration
+
+#### Configurable Pronunciation
+
+The pronunciation filter supports custom replacements in your config:
+
+```javascript
+filters: [
+  {
+    name: "pronunciation",
+    enabled: true,
+    options: {
+      // Override defaults
+      "git": "get",          // Instead of default "ghit"
+      
+      // Add your own
+      "beehiiv": "bee hive",
+      "anthropic": "ann throw pick",
+      "kubectl": "cube control",
+      "k8s": "kubernetes"
+    }
+  }
+]
+```
+
+See `examples/config-with-pronunciation.js` for a complete example.
 
 ## API
 
