@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2025-09-01
+
+### ✨ Features
+- Add emoji filter to prevent TTS from saying "party pooper" when you meant 🎉
+- Enable config hot-reload by properly calling startWatching()
+
+### 🐛 Fixes
+- Clean up TTS error logging to show helpful messages instead of axios object dumps
+- Fix config file watching to detect changes and reload automatically
+
+### 📝 Documentation
+- Add legendary "party pooper" example to filter documentation
+- Document emoji filter in README
+
+### Explanation
+**Patch version bump (0.3.0 → 0.3.1)** because this release fixes config hot-reload and improves error handling, plus adds the emoji filter as a small enhancement. No breaking changes.
+
 ## [0.3.0] - 2025-09-01
 
 ### ✨ Features
