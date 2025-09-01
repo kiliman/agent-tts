@@ -5,6 +5,7 @@ import { LengthFilter } from "./length-filter.js";
 import { RoleFilter } from "./role-filter.js";
 import { EmojiFilter } from "./emoji-filter.js";
 import { UrlFilter } from "./url-filter.js";
+import { FilepathFilter } from "./filepath-filter.js";
 
 export class FilterChain {
   private filters: BaseFilter[] = [];
@@ -37,6 +38,7 @@ export class FilterChain {
       this.filters.push(new RoleFilter(["assistant"]));
       this.filters.push(new UrlFilter());
       this.filters.push(new EmojiFilter());
+      this.filters.push(new FilepathFilter());
       this.filters.push(new PronunciationFilter());
     }
   }
@@ -70,6 +72,11 @@ export class FilterChain {
         const urlFilter = new UrlFilter();
         urlFilter.setEnabled(enabled);
         return urlFilter;
+
+      case "filepath":
+        const filepathFilter = new FilepathFilter();
+        filepathFilter.setEnabled(enabled);
+        return filepathFilter;
 
       default:
         return null;

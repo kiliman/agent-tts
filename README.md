@@ -111,6 +111,7 @@ Each profile represents an AI agent you want to monitor:
 
 - `url`: Replaces URLs with "URL" so TTS doesn't spell out "h-t-t-p-s-colon-slash-slash..."
 - `emoji`: Removes emojis so TTS doesn't say "party pooper" when you meant 🎉
+- `filepath`: Simplifies file paths to just the filename or last directory (e.g., "/usr/local/bin/node" → "node")
 - `markdown-cleaner`: Removes markdown formatting
 - `pronunciation`: Improves pronunciation (e.g., "git" → "ghit")
 - `code-stripper`: Removes code blocks
