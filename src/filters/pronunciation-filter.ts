@@ -66,6 +66,12 @@ export class PronunciationFilter extends BaseFilter {
 
     let content = message.content;
 
+    // Handle version numbers and dotted numbers (e.g., "0.1.0" -> "0 dot 1 dot 0")
+    // Matches numbers separated by dots (e.g., 1.2.3, 0.1.0, 192.168.1.1)
+    content = content.replace(/\b(\d+)\.(\d+(?:\.\d+)*)\b/g, (match) => {
+      return match.split('.').join(' dot ');
+    });
+
     for (const [original, replacement] of this.replacements) {
       // Escape special regex characters in the original string
       const escaped = original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
