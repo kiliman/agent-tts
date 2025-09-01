@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { apiClient, wsClient } from "../services/api";
-import clsx from "clsx";
+import { Heart } from "lucide-react";
 import { getResourceUrl } from "../utils/url";
 
 interface ProfileCard {
@@ -16,12 +16,14 @@ interface ProfileCard {
   filteredText: string;
   timestamp: number;
   status: string;
+  favoritesCount?: number;
 }
 
 export function Dashboard() {
   const [profileCards, setProfileCards] = useState<ProfileCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [favoritesCounts, setFavoritesCounts] = useState<{ [key: string]: number }>({});
 
   useEffect(() => {
     loadProfileCards();
@@ -86,6 +88,13 @@ export function Dashboard() {
       wsClient.off("log-added", handleNewLog);
     };
   }, []);
+  
+  // Load favorites counts when profile cards change
+  useEffect(() => {
+    if (profileCards.length > 0) {
+      loadFavoritesCounts();
+    }
+  }, [profileCards]);
 
   const loadProfileCards = async () => {
     try {
@@ -124,6 +133,26 @@ export function Dashboard() {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + "...";
   };
+  
+  const loadFavoritesCounts = React.useCallback(async () => {
+    try {
+      // Get unique profiles
+      const profiles = [...new Set(profileCards.map(card => card.profile))];
+      const counts: { [key: string]: number } = {};
+      
+      // Fetch counts for each profile
+      for (const profile of profiles) {
+        const response = await apiClient.getFavoritesCount(profile);
+        if (response.success) {
+          counts[profile] = response.count;
+        }
+      }
+      
+      setFavoritesCounts(counts);
+    } catch (err) {
+      console.error('Failed to load favorites counts:', err);
+    }
+  }, [profileCards]);
 
   if (loading) {
     return (
@@ -181,6 +210,14 @@ export function Dashboard() {
               <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">
                 {truncateText(card.originalText)}
               </p>
+              {favoritesCounts[card.profile] > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <Heart className="w-3 h-3 fill-red-500 text-red-500" />
+                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                    {favoritesCounts[card.profile]} favorite{favoritesCounts[card.profile] !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              )}
 
               <div className="flex items-center justify-end text-xs text-gray-500 dark:text-gray-400">
                 <span>{formatTimestamp(card.timestamp)}</span>

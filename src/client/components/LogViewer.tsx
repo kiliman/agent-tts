@@ -4,7 +4,8 @@ import { ToggleSwitch } from './ToggleSwitch';
 import { 
   Play, 
   Pause,
-  RefreshCw 
+  RefreshCw,
+  Heart
 } from "lucide-react";
 
 interface LogEntry {
@@ -17,6 +18,7 @@ interface LogEntry {
   filePath: string;
   avatarUrl?: string;
   voiceName?: string;
+  isFavorite?: boolean;
 }
 
 interface LogViewerProps {
@@ -25,6 +27,7 @@ interface LogViewerProps {
   onPlayEntry?: (id: number) => void;
   onPause?: () => void;
   onStop?: () => void;
+  onToggleFavorite?: (id: number) => void;
   playingId?: number | null;
   autoScroll?: boolean;
   showControls?: boolean;
@@ -36,6 +39,7 @@ export function LogViewer({
   onPlayEntry,
   onPause,
   onStop,
+  onToggleFavorite,
   playingId,
   autoScroll: autoScrollProp = true,
   showControls = true,
@@ -142,26 +146,46 @@ export function LogViewer({
                     ? "Click to collapse..."
                     : log.originalText}
                 </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (playingId === log.id && onPause) {
-                      console.log(`[LogViewer] Pausing playback for log ID: ${log.id}`);
-                      onPause();
-                    } else {
-                      console.log(`[LogViewer] Starting playback for log ID: ${log.id}`);
-                      handlePlay(log.id);
+                <div className="flex gap-2">
+                  {onToggleFavorite && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleFavorite(log.id);
+                      }}
+                      className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded transition-colors"
+                      title={log.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                    >
+                      <Heart 
+                        className={clsx("w-4 h-4", {
+                          "fill-red-500 text-red-500": log.isFavorite,
+                          "text-gray-500 dark:text-gray-400": !log.isFavorite
+                        })}
+                      />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (playingId === log.id && onPause) {
+                        console.log(`[LogViewer] Pausing playback for log ID: ${log.id}`);
+                        onPause();
+                      } else {
+                        console.log(`[LogViewer] Starting playback for log ID: ${log.id}`);
+                        handlePlay(log.id);
+                      }
+                    }}
+                    className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded transition-colors"
+                    title={playingId === log.id ? "Pause" : "Play"}
+                  >
+                    {playingId === log.id ? 
+                      <Pause className="w-4 h-4" /> : 
+                      <Play className="w-4 h-4" />
                     }
-                  }}
-                  className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded transition-colors"
-                  title={playingId === log.id ? "Pause" : "Play"}
-                >
-                  {playingId === log.id ? 
-                    <Pause className="w-4 h-4" /> : 
-                    <Play className="w-4 h-4" />
-                  }
-                </button>
+                  </button>
+                </div>
               </div>
 
               {expandedIds.has(log.id) && (

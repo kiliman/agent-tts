@@ -59,6 +59,20 @@ export class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_tts_queue_timestamp ON tts_queue(timestamp DESC);
       CREATE INDEX IF NOT EXISTS idx_tts_queue_profile ON tts_queue(profile);
     `);
+    
+    // Migration: Add is_favorite column if it doesn't exist
+    const columns = this.db.prepare("PRAGMA table_info(tts_queue)").all() as any[];
+    const hasFavoriteColumn = columns.some((col: any) => col.name === 'is_favorite');
+    
+    if (!hasFavoriteColumn) {
+      this.db.exec(`
+        ALTER TABLE tts_queue 
+        ADD COLUMN is_favorite INTEGER DEFAULT 0;
+        
+        CREATE INDEX IF NOT EXISTS idx_tts_queue_favorites ON tts_queue(is_favorite, timestamp DESC);
+      `);
+      console.log('[Database] Added is_favorite column to tts_queue table');
+    }
   }
 
   getFileState(filepath: string): FileState | null {
@@ -209,8 +223,41 @@ export class DatabaseManager {
       state: row.state,
       apiResponseStatus: row.api_response_status,
       apiResponseMessage: row.api_response_message,
-      processingTime: row.processing_time
+      processingTime: row.processing_time,
+      isFavorite: row.is_favorite === 1
     };
+  }
+  
+  toggleFavorite(id: number): boolean {
+    // Get current favorite status
+    const current = this.db.prepare(
+      'SELECT is_favorite FROM tts_queue WHERE id = ?'
+    ).get(id) as any;
+    
+    if (!current) return false;
+    
+    const newValue = current.is_favorite === 1 ? 0 : 1;
+    
+    // Toggle the favorite status
+    this.db.prepare(
+      'UPDATE tts_queue SET is_favorite = ? WHERE id = ?'
+    ).run(newValue, id);
+    
+    return newValue === 1;
+  }
+  
+  getFavoritesCount(profile?: string): number {
+    if (profile) {
+      const result = this.db.prepare(
+        'SELECT COUNT(*) as count FROM tts_queue WHERE profile = ? AND is_favorite = 1'
+      ).get(profile) as any;
+      return result?.count || 0;
+    } else {
+      const result = this.db.prepare(
+        'SELECT COUNT(*) as count FROM tts_queue WHERE is_favorite = 1'
+      ).get() as any;
+      return result?.count || 0;
+    }
   }
 
   clearOldEntries(daysToKeep: number = 7): number {

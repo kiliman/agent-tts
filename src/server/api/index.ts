@@ -91,6 +91,28 @@ export function setupApiRoutes(app: Express, coordinator: AppCoordinator) {
       res.status(500).json({ success: false, error: (error as Error).message });
     }
   });
+  
+  // Toggle favorite status
+  app.post('/api/logs/:id/favorite', async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const isFavorite = coordinator.database.toggleFavorite(id);
+      res.json({ success: true, isFavorite });
+    } catch (error) {
+      res.status(500).json({ success: false, error: (error as Error).message });
+    }
+  });
+  
+  // Get favorites count
+  app.get('/api/favorites/count', async (req: Request, res: Response) => {
+    try {
+      const profile = req.query.profile as string | undefined;
+      const count = coordinator.database.getFavoritesCount(profile);
+      res.json({ success: true, count });
+    } catch (error) {
+      res.status(500).json({ success: false, error: (error as Error).message });
+    }
+  });
 
   // Status
   app.get('/api/status', async (req: Request, res: Response) => {

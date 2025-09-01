@@ -29,7 +29,7 @@ export class ElevenLabsTTSService extends BaseTTSService {
     }
   }
   
-  async tts(text: string): Promise<void> {
+  async tts(text: string, metadata?: { profile?: string; timestamp?: Date }): Promise<void> {
     if (!this.client) {
       throw new Error('ElevenLabs client not initialized. Please provide an API key.');
     }
@@ -62,6 +62,11 @@ export class ElevenLabsTTSService extends BaseTTSService {
       const tempFile = join(tmpdir(), `tts-${Date.now()}.mp3`);
       await writeFile(tempFile, audioBuffer);
       this.currentTempFile = tempFile;
+      
+      // Save a permanent copy if metadata provided
+      if (metadata?.profile && metadata?.timestamp) {
+        await this.saveAudioFile(tempFile, metadata.profile, metadata.timestamp);
+      }
       
       // Play using afplay (macOS) or other platform-specific player
       await this.playAudio(tempFile, 'ElevenLabs');

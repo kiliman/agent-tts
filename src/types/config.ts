@@ -76,4 +76,5 @@ export interface TTSQueueEntry {
   apiResponseStatus?: number;
   apiResponseMessage?: string;
   processingTime?: number;
+  isFavorite?: boolean;
 }

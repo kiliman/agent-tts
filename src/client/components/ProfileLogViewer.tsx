@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { LogViewer } from './LogViewer';
 import { ToggleSwitch } from './ToggleSwitch';
 import { apiClient, wsClient } from '../services/api';
-import { RefreshCw, Bot, AlertCircle } from 'lucide-react';
+import { RefreshCw, Bot, AlertCircle, Heart } from 'lucide-react';
 import { getResourceUrl } from '../utils/url';
 
 interface ProfileLogViewerProps {
@@ -24,11 +24,13 @@ export function ProfileLogViewer({
   const [error, setError] = useState<string | null>(null);
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [profileInfo, setProfileInfo] = useState<any>(null);
+  const [favoritesCount, setFavoritesCount] = useState<number>(0);
 
   useEffect(() => {
     if (profile) {
       loadLogs();
       loadProfileInfo();
+      loadFavoritesCount();
     }
   }, [profile, refreshTrigger]);
 
@@ -129,6 +131,37 @@ export function ProfileLogViewer({
       console.error('Failed to stop playback:', err);
     }
   };
+  
+  const loadFavoritesCount = async () => {
+    try {
+      const response = await apiClient.getFavoritesCount(profile);
+      if (response.success) {
+        setFavoritesCount(response.count);
+      }
+    } catch (err) {
+      console.error('Failed to load favorites count:', err);
+    }
+  };
+  
+  const handleToggleFavorite = async (id: number) => {
+    try {
+      const response = await apiClient.toggleFavorite(id);
+      if (response.success) {
+        // Update the log entry
+        setLogs(prevLogs => 
+          prevLogs.map(log => 
+            log.id === id 
+              ? { ...log, isFavorite: response.isFavorite }
+              : log
+          )
+        );
+        // Reload favorites count
+        loadFavoritesCount();
+      }
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -156,6 +189,14 @@ export function ProfileLogViewer({
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     Voice: {profileInfo.voiceName}
                   </p>
+                )}
+                {favoritesCount > 0 && (
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <Heart className="w-4 h-4 fill-red-500 text-red-500" />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      {favoritesCount} favorite{favoritesCount !== 1 ? 's' : ''}
+                    </span>
+                  </div>
                 )}
               </div>
             </div>
@@ -197,6 +238,7 @@ export function ProfileLogViewer({
           onPlayEntry={handlePlayEntry}
           onPause={handlePausePlayback}
           onStop={handleStopPlayback}
+          onToggleFavorite={handleToggleFavorite}
           playingId={playingId}
           autoScroll={autoScroll}
           showControls={false}

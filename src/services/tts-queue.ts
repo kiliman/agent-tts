@@ -99,7 +99,10 @@ export class TTSQueueProcessor extends EventEmitter {
       
       this.emit('playing', message);
       
-      await ttsService.tts(message.filteredText);
+      await ttsService.tts(message.filteredText, { 
+        profile: message.profile, 
+        timestamp: message.timestamp 
+      });
       
       const processingTime = Date.now() - startTime;
       

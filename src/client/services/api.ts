@@ -58,6 +58,17 @@ class ApiClient {
     const response = await axios.post(`${this.baseURL}/logs/${logId}/replay`);
     return response.data;
   }
+  
+  async toggleFavorite(id: number) {
+    const response = await axios.post(`${this.baseURL}/logs/${id}/favorite`);
+    return response.data;
+  }
+  
+  async getFavoritesCount(profile?: string) {
+    const params = profile ? { profile } : {};
+    const response = await axios.get(`${this.baseURL}/favorites/count`, { params });
+    return response.data;
+  }
 
   // Status
   async getStatus() {
