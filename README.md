@@ -109,6 +109,7 @@ Each profile represents an AI agent you want to monitor:
 
 ### Available Filters
 
+- `url`: Replaces URLs with "URL" so TTS doesn't spell out "h-t-t-p-s-colon-slash-slash..."
 - `emoji`: Removes emojis so TTS doesn't say "party pooper" when you meant 🎉
 - `markdown-cleaner`: Removes markdown formatting
 - `pronunciation`: Improves pronunciation (e.g., "git" → "ghit")

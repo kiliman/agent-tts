@@ -4,6 +4,7 @@ import { PronunciationFilter } from "./pronunciation-filter.js";
 import { LengthFilter } from "./length-filter.js";
 import { RoleFilter } from "./role-filter.js";
 import { EmojiFilter } from "./emoji-filter.js";
+import { UrlFilter } from "./url-filter.js";
 
 export class FilterChain {
   private filters: BaseFilter[] = [];
@@ -34,6 +35,7 @@ export class FilterChain {
 
     if (this.filters.length === 0) {
       this.filters.push(new RoleFilter(["assistant"]));
+      this.filters.push(new UrlFilter());
       this.filters.push(new EmojiFilter());
       this.filters.push(new PronunciationFilter());
     }
@@ -63,6 +65,11 @@ export class FilterChain {
         const emojiFilter = new EmojiFilter();
         emojiFilter.setEnabled(enabled);
         return emojiFilter;
+
+      case "url":
+        const urlFilter = new UrlFilter();
+        urlFilter.setEnabled(enabled);
+        return urlFilter;
 
       default:
         return null;
