@@ -1,11 +1,12 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import clsx from "clsx";
 import { ToggleSwitch } from './ToggleSwitch';
 import { 
   Play, 
   Pause,
   RefreshCw,
-  Heart
+  Heart,
+  Loader2
 } from "lucide-react";
 
 interface LogEntry {
@@ -28,9 +29,12 @@ interface LogViewerProps {
   onPause?: () => void;
   onStop?: () => void;
   onToggleFavorite?: (id: number) => void;
+  onLoadMore?: () => Promise<void>;
   playingId?: number | null;
   autoScroll?: boolean;
   showControls?: boolean;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
 }
 
 export function LogViewer({
@@ -40,22 +44,63 @@ export function LogViewer({
   onPause,
   onStop,
   onToggleFavorite,
+  onLoadMore,
   playingId,
   autoScroll: autoScrollProp = true,
   showControls = true,
+  hasMore = false,
+  isLoadingMore = false,
 }: LogViewerProps) {
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [autoScrollLocal, setAutoScrollLocal] = useState(autoScrollProp);
   const listRef = useRef<HTMLDivElement>(null);
+  const loadingRef = useRef<boolean>(false);
   
   // Use prop autoScroll if showControls is false, otherwise use local state
   const autoScroll = showControls ? autoScrollLocal : autoScrollProp;
 
+  // Detect when user scrolls near the top to load more
+  const handleScroll = useCallback(async () => {
+    if (!listRef.current || !onLoadMore || !hasMore || loadingRef.current) return;
+    
+    const { scrollTop } = listRef.current;
+    const threshold = 100; // Load more when within 100px of top
+    
+    if (scrollTop < threshold) {
+      loadingRef.current = true;
+      
+      // Save current scroll position and height
+      const prevScrollHeight = listRef.current.scrollHeight;
+      const prevScrollTop = scrollTop;
+      
+      await onLoadMore();
+      
+      // After new items are added, restore scroll position
+      requestAnimationFrame(() => {
+        if (listRef.current) {
+          const newScrollHeight = listRef.current.scrollHeight;
+          const heightDiff = newScrollHeight - prevScrollHeight;
+          listRef.current.scrollTop = prevScrollTop + heightDiff;
+        }
+        loadingRef.current = false;
+      });
+    }
+  }, [onLoadMore, hasMore]);
+  
   useEffect(() => {
-    if (autoScroll && listRef.current) {
+    const container = listRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [handleScroll]);
+  
+  useEffect(() => {
+    // Only auto-scroll when adding new messages at the bottom
+    if (autoScroll && listRef.current && !loadingRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
-  }, [logs, autoScroll]);
+  }, [logs.length, autoScroll]);
 
   // Scroll when a new item starts playing
   useEffect(() => {
@@ -110,7 +155,14 @@ export function LogViewer({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto p-4" ref={listRef}>
+      <div className="flex-1 overflow-y-auto p-4 relative" ref={listRef}>
+        {isLoadingMore && (
+          <div className="absolute top-0 left-0 right-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm p-2 flex items-center justify-center z-10">
+            <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Loading older messages...</span>
+          </div>
+        )}
+        
         {logs.length === 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             No log entries yet

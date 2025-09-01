@@ -44,7 +44,7 @@ export class TTSLogRepository {
     `).run(status, ttsStatus || null, ttsMessage || null, id);
   }
 
-  getRecentEntries(limit: number = 50): TTSLogRecord[] {
+  getRecentEntries(limit: number = 50, offset: number = 0): TTSLogRecord[] {
     const rows = this.db.prepare(`
       SELECT 
         id,
@@ -61,13 +61,13 @@ export class TTSLogRepository {
         created_at as createdAt
       FROM tts_queue
       ORDER BY timestamp DESC
-      LIMIT ?
-    `).all(limit) as any[];
+      LIMIT ? OFFSET ?
+    `).all(limit, offset) as any[];
     
     return rows;
   }
 
-  getEntriesByProfile(profile: string, limit: number = 50): TTSLogRecord[] {
+  getEntriesByProfile(profile: string, limit: number = 50, offset: number = 0): TTSLogRecord[] {
     const rows = this.db.prepare(`
       SELECT 
         id,
@@ -85,8 +85,8 @@ export class TTSLogRepository {
       FROM tts_queue
       WHERE profile = ?
       ORDER BY timestamp DESC
-      LIMIT ?
-    `).all(profile, limit) as any[];
+      LIMIT ? OFFSET ?
+    `).all(profile, limit, offset) as any[];
     
     return rows;
   }
@@ -113,15 +113,15 @@ export class TTSLogRepository {
     return row || null;
   }
   
-  getRecentLogs(limit: number = 50): TTSLogRecord[] {
-    return this.getRecentEntries(limit);
+  getRecentLogs(limit: number = 50, offset: number = 0): TTSLogRecord[] {
+    return this.getRecentEntries(limit, offset);
   }
 
-  getLogsByProfile(profile: string, limit: number = 50): TTSLogRecord[] {
-    return this.getEntriesByProfile(profile, limit);
+  getLogsByProfile(profile: string, limit: number = 50, offset: number = 0): TTSLogRecord[] {
+    return this.getEntriesByProfile(profile, limit, offset);
   }
   
-  getFavoritesByProfile(profile: string, limit: number = 50): TTSLogRecord[] {
+  getFavoritesByProfile(profile: string, limit: number = 50, offset: number = 0): TTSLogRecord[] {
     const rows = this.db.prepare(`
       SELECT 
         id,
@@ -139,13 +139,13 @@ export class TTSLogRepository {
       FROM tts_queue
       WHERE profile = ? AND is_favorite = 1
       ORDER BY timestamp DESC
-      LIMIT ?
-    `).all(profile, limit) as any[];
+      LIMIT ? OFFSET ?
+    `).all(profile, limit, offset) as any[];
     
     return rows;
   }
   
-  getAllFavorites(limit: number = 50): TTSLogRecord[] {
+  getAllFavorites(limit: number = 50, offset: number = 0): TTSLogRecord[] {
     const rows = this.db.prepare(`
       SELECT 
         id,
@@ -163,8 +163,8 @@ export class TTSLogRepository {
       FROM tts_queue
       WHERE is_favorite = 1
       ORDER BY timestamp DESC
-      LIMIT ?
-    `).all(limit) as any[];
+      LIMIT ? OFFSET ?
+    `).all(limit, offset) as any[];
     
     return rows;
   }

@@ -64,10 +64,11 @@ export function setupApiRoutes(app: Express, coordinator: AppCoordinator) {
   app.get('/api/logs', async (req: Request, res: Response) => {
     try {
       const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
       const profile = req.query.profile as string | undefined;
       const favoritesOnly = req.query.favorites === 'true';
-      const logs = await coordinator.getLogsWithAvatars(limit, profile, favoritesOnly);
-      res.json({ success: true, logs });
+      const logs = await coordinator.getLogsWithAvatars(limit, profile, favoritesOnly, offset);
+      res.json({ success: true, logs, hasMore: logs.length === limit });
     } catch (error) {
       res.status(500).json({ success: false, error: (error as Error).message });
     }

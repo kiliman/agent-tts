@@ -42,8 +42,8 @@ class ApiClient {
   }
 
   // Logs
-  async getLogs(limit: number = 50, profile?: string, favoritesOnly: boolean = false) {
-    const params: any = { limit };
+  async getLogs(limit: number = 50, profile?: string, favoritesOnly: boolean = false, offset: number = 0) {
+    const params: any = { limit, offset };
     if (profile) params.profile = profile;
     if (favoritesOnly) params.favorites = 'true';
     const response = await axios.get(`${this.baseURL}/logs`, { params });

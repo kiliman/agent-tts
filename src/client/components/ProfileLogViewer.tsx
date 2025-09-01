@@ -29,10 +29,15 @@ export function ProfileLogViewer({
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [profileInfo, setProfileInfo] = useState<any>(null);
   const [favoritesCount, setFavoritesCount] = useState<number>(0);
+  const [hasMore, setHasMore] = useState<boolean>(true);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+  const [offset, setOffset] = useState<number>(0);
 
   useEffect(() => {
     if (profile) {
-      loadLogs();
+      setOffset(0);
+      setHasMore(true);
+      loadLogs(true);
       loadProfileInfo();
       loadFavoritesCount();
     }
@@ -81,21 +86,41 @@ export function ProfileLogViewer({
     };
   }, [profile]);
 
-  const loadLogs = async () => {
+  const loadLogs = async (reset: boolean = false) => {
     if (!profile) return;
     
     try {
-      console.log(`Loading ${favoritesOnly ? 'favorite' : 'all'} logs for profile: ${profile}`);
-      const response = await apiClient.getLogs(50, profile, favoritesOnly);
+      const currentOffset = reset ? 0 : offset;
+      console.log(`Loading ${favoritesOnly ? 'favorite' : 'all'} logs for profile: ${profile}, offset: ${currentOffset}`);
+      const response = await apiClient.getLogs(50, profile, favoritesOnly, currentOffset);
+      
       if (response.success && response.logs) {
         console.log(`Fetched ${response.logs.length} ${favoritesOnly ? 'favorite' : ''} logs for ${profile}`);
-        setLogs(response.logs);
+        
+        if (reset) {
+          setLogs(response.logs);
+          setOffset(response.logs.length);
+        } else {
+          // Prepend older messages to the beginning
+          setLogs(prevLogs => [...prevLogs, ...response.logs]);
+          setOffset(prevOffset => prevOffset + response.logs.length);
+        }
+        
+        setHasMore(response.hasMore || false);
       }
     } catch (err) {
       console.error('Failed to load logs:', err);
       setError('Failed to load logs');
       setTimeout(() => setError(null), 3000);
     }
+  };
+  
+  const loadMoreLogs = async () => {
+    if (isLoadingMore || !hasMore) return;
+    
+    setIsLoadingMore(true);
+    await loadLogs(false);
+    setIsLoadingMore(false);
   };
 
   const loadProfileInfo = async () => {
@@ -218,7 +243,9 @@ export function ProfileLogViewer({
               <button
                 type="button"
                 onClick={() => {
-                  loadLogs();
+                  setOffset(0);
+                  setHasMore(true);
+                  loadLogs(true);
                   if (onRefresh) onRefresh();
                 }}
                 className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors inline-flex items-center gap-1.5"
@@ -268,9 +295,12 @@ export function ProfileLogViewer({
           onPause={handlePausePlayback}
           onStop={handleStopPlayback}
           onToggleFavorite={handleToggleFavorite}
+          onLoadMore={loadMoreLogs}
           playingId={playingId}
           autoScroll={autoScroll}
           showControls={false}
+          hasMore={hasMore}
+          isLoadingMore={isLoadingMore}
         />
       </div>
     </div>
