@@ -57,6 +57,7 @@ export class TTSLogRepository {
         api_response_status as ttsStatus,
         api_response_message as ttsMessage,
         processing_time as elapsed,
+        is_favorite as isFavorite,
         created_at as createdAt
       FROM tts_queue
       ORDER BY timestamp DESC
@@ -79,6 +80,7 @@ export class TTSLogRepository {
         api_response_status as ttsStatus,
         api_response_message as ttsMessage,
         processing_time as elapsed,
+        is_favorite as isFavorite,
         created_at as createdAt
       FROM tts_queue
       WHERE profile = ?
@@ -102,6 +104,7 @@ export class TTSLogRepository {
         api_response_status as ttsStatus,
         api_response_message as ttsMessage,
         processing_time as elapsed,
+        is_favorite as isFavorite,
         created_at as createdAt
       FROM tts_queue
       WHERE id = ?
