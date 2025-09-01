@@ -112,6 +112,30 @@ Follow these steps.
 4. Start with npm run dev.
 
 That's it!`
+    },
+    // Heading with blank line before list
+    {
+      input: `## Steps to Deploy
+
+1. Build the production bundle
+2. Run the test suite
+3. Push to the repository
+
+## Features to Add
+
+- Voice speed control
+- Volume adjustment
+- Skip to next sentence`,
+      expected: `Steps to Deploy.
+
+1. Build the production bundle.
+2. Run the test suite.
+3. Push to the repository.
+
+Features to Add.
+Voice speed control.
+Volume adjustment.
+Skip to next sentence.`
     }
   ];
   

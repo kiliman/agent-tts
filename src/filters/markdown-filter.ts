@@ -55,7 +55,7 @@ export class MarkdownFilter extends BaseFilter {
     // Since we've already added periods, just clean up formatting
     content = content.replace(/^(\s*\d+)\.\s+/gm, '$1. ');
     
-    // Normalize whitespace
+    // Normalize whitespace but preserve newlines for TTS pauses
     content = content.replace(/[^\S\n]+/g, ' ');  // Replace all whitespace except newlines with single space
     content = content.replace(/\n{3,}/g, '\n\n');  // Collapse multiple newlines to max 2
     content = content.trim();
@@ -86,6 +86,16 @@ export class MarkdownFilter extends BaseFilter {
       const nextIsListItem = nextLine ? this.isListItem(nextLine) : false;
       const nextIsEmpty = !nextLine || nextLine.trim() === '';
       
+      // Look ahead to find the next non-empty line
+      let nextNonEmptyLine = null;
+      for (let j = i + 1; j < lines.length; j++) {
+        if (lines[j].trim() !== '') {
+          nextNonEmptyLine = lines[j];
+          break;
+        }
+      }
+      const nextNonEmptyIsListItem = nextNonEmptyLine ? this.isListItem(nextNonEmptyLine) : false;
+      
       // If this is a list item and doesn't end with punctuation, add a period
       if (isListItem && (nextIsListItem || nextIsEmpty || i === lines.length - 1)) {
         // Check if line ends with punctuation (excluding the list marker itself)
@@ -95,9 +105,9 @@ export class MarkdownFilter extends BaseFilter {
           line = this.addPeriodToListItem(line);
         }
       }
-      // If current line is NOT a list item but next line IS, ensure it ends with period
+      // If current line is NOT a list item but followed by a list (even with blank lines), ensure it ends with period
       // This handles headings/text before lists
-      else if (!isListItem && nextIsListItem && line.trim() !== '') {
+      else if (!isListItem && nextNonEmptyIsListItem && line.trim() !== '') {
         const trimmed = line.trimEnd();
         if (!this.endsWithPunctuation(trimmed)) {
           // If it ends with a colon, replace it with a period
