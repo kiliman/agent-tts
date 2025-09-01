@@ -3,9 +3,7 @@ import clsx from "clsx";
 import { ToggleSwitch } from './ToggleSwitch';
 import { 
   Play, 
-  Pause, 
-  ChevronDown, 
-  ChevronUp,
+  Pause,
   RefreshCw 
 } from "lucide-react";
 
@@ -132,46 +130,38 @@ export function LogViewer({
                 <span className="text-gray-500 dark:text-gray-400 text-xs">
                   {formatTimestamp(log.timestamp)}
                 </span>
-                <div className={clsx("flex-1 text-sm truncate", {
-                  "text-gray-400 dark:text-gray-500": log.status === "queued",
-                  "text-gray-900 dark:text-gray-100": log.status !== "queued"
-                })}>
+                <div 
+                  className={clsx("flex-1 text-sm truncate cursor-pointer select-none", {
+                    "text-gray-400 dark:text-gray-500": log.status === "queued",
+                    "text-gray-900 dark:text-gray-100": log.status !== "queued"
+                  })}
+                  onClick={() => toggleExpand(log.id)}
+                  title={expandedIds.has(log.id) ? "Click to collapse" : "Click to expand"}
+                >
                   {expandedIds.has(log.id)
                     ? "Click to collapse..."
                     : log.originalText}
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (playingId === log.id && onPause) {
-                        console.log(`[LogViewer] Pausing playback for log ID: ${log.id}`);
-                        onPause();
-                      } else {
-                        console.log(`[LogViewer] Starting playback for log ID: ${log.id}`);
-                        handlePlay(log.id);
-                      }
-                    }}
-                    className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded transition-colors"
-                    title={playingId === log.id ? "Pause" : "Play"}
-                  >
-                    {playingId === log.id ? 
-                      <Pause className="w-4 h-4" /> : 
-                      <Play className="w-4 h-4" />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (playingId === log.id && onPause) {
+                      console.log(`[LogViewer] Pausing playback for log ID: ${log.id}`);
+                      onPause();
+                    } else {
+                      console.log(`[LogViewer] Starting playback for log ID: ${log.id}`);
+                      handlePlay(log.id);
                     }
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => toggleExpand(log.id)}
-                    className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded transition-colors"
-                    title={expandedIds.has(log.id) ? "Collapse" : "Expand"}
-                  >
-                    {expandedIds.has(log.id) ? 
-                      <ChevronUp className="w-4 h-4" /> : 
-                      <ChevronDown className="w-4 h-4" />
-                    }
-                  </button>
-                </div>
+                  }}
+                  className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded transition-colors"
+                  title={playingId === log.id ? "Pause" : "Play"}
+                >
+                  {playingId === log.id ? 
+                    <Pause className="w-4 h-4" /> : 
+                    <Play className="w-4 h-4" />
+                  }
+                </button>
               </div>
 
               {expandedIds.has(log.id) && (
