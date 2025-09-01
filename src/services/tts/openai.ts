@@ -1,7 +1,6 @@
 import { BaseTTSService } from './base.js';
 import { TTSServiceConfig } from '../../types/config.js';
-import { spawn, ChildProcess } from 'child_process';
-import { writeFile, unlink } from 'fs/promises';
+import { writeFile } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import axios from 'axios';
@@ -12,8 +11,6 @@ export class OpenAITTSService extends BaseTTSService {
   protected model: string;
   protected speed: number;
   protected responseFormat: string;
-  private currentAudioProcess: ChildProcess | null = null;
-  private currentTempFile: string | null = null;
   
   constructor(config: TTSServiceConfig) {
     super(config);
@@ -73,7 +70,7 @@ export class OpenAITTSService extends BaseTTSService {
       this.currentTempFile = tempFile;
       
       // Play using afplay (macOS) or other platform-specific player
-      await this.playAudio(tempFile);
+      await this.playAudio(tempFile, 'OpenAI');
     } catch (error: any) {
       // Extract useful error information without dumping entire request object
       let errorMessage = 'TTS request failed';
@@ -137,78 +134,4 @@ export class OpenAITTSService extends BaseTTSService {
     return !!this.apiKey;
   }
   
-  private async playAudio(filePath: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const platform = process.platform;
-      let command: string;
-      let args: string[];
-      
-      if (platform === 'darwin') {
-        command = 'afplay';
-        args = [filePath];
-      } else if (platform === 'linux') {
-        // For Linux, try multiple players in order of preference
-        // We'll use ffplay as it supports more formats
-        command = 'ffplay';
-        args = ['-nodisp', '-autoexit', filePath];
-      } else if (platform === 'win32') {
-        command = 'powershell';
-        args = ['-c', `(New-Object Media.SoundPlayer '${filePath}').PlaySync()`];
-      } else {
-        reject(new Error(`Unsupported platform: ${platform}`));
-        return;
-      }
-      
-      console.log(`[OpenAI] Playing audio with ${command}`);
-      this.currentAudioProcess = spawn(command, args);
-      
-      this.currentAudioProcess.on('close', async (code) => {
-        console.log(`[OpenAI] Audio playback finished with code ${code}`);
-        this.currentAudioProcess = null;
-        
-        // Clean up temp file
-        if (this.currentTempFile) {
-          try {
-            await unlink(this.currentTempFile);
-            console.log(`[OpenAI] Cleaned up temp file: ${this.currentTempFile}`);
-          } catch (err) {
-            console.error(`[OpenAI] Failed to delete temp file: ${err}`);
-          }
-          this.currentTempFile = null;
-        }
-        
-        if (code === 0) {
-          resolve();
-        } else if (code !== null) {
-          // code is null when process is killed, which is expected for stop()
-          reject(new Error(`Audio playback failed with code ${code}`));
-        } else {
-          // Process was killed (stopped)
-          resolve();
-        }
-      });
-      
-      this.currentAudioProcess.on('error', (err) => {
-        console.error(`[OpenAI] Audio playback error: ${err}`);
-        this.currentAudioProcess = null;
-        reject(err);
-      });
-    });
-  }
-  
-  stop(): void {
-    if (this.currentAudioProcess) {
-      console.log('[OpenAI] Stopping audio playback');
-      this.currentAudioProcess.kill();
-      this.currentAudioProcess = null;
-    }
-    
-    // Clean up temp file if it exists
-    if (this.currentTempFile) {
-      unlink(this.currentTempFile).catch(err => {
-        console.error(`[OpenAI] Failed to delete temp file during stop: ${err}`);
-      });
-      this.currentTempFile = null;
-    }
-  }
 }

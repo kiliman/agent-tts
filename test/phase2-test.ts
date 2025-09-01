@@ -58,9 +58,9 @@ async function testPhase2() {
 
   console.log('\n4️⃣ Testing Filter System');
   const filterChain = new FilterChain([
-    { name: 'role', enabled: true, filter: null },
-    { name: 'pronunciation', enabled: true, filter: null },
-    { name: 'length', enabled: true, filter: null }
+    { name: 'role', enabled: true, filter: undefined },
+    { name: 'pronunciation', enabled: true, filter: undefined },
+    { name: 'length', enabled: true, filter: undefined }
   ]);
   
   const testMessage = {
