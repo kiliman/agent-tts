@@ -304,7 +304,7 @@ export class AppCoordinator extends EventEmitter {
         originalText: log.originalText,
         filteredText: log.filteredText,
         filename: log.filePath,
-        timestamp: new Date(),
+        timestamp: new Date(log.timestamp),
         state: 'queued',
         profileConfig: profileConfig
       };
