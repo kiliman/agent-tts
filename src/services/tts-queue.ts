@@ -3,6 +3,10 @@ import { TTSQueueEntry, ProfileConfig } from '../types/config.js';
 import { DatabaseManager } from './database.js';
 import { TTSServiceFactory } from './tts/factory.js';
 import { BaseTTSService } from './tts/base.js';
+import { join } from 'path';
+import { homedir } from 'os';
+import { existsSync } from 'fs';
+import { spawn } from 'child_process';
 
 export interface QueuedMessage extends TTSQueueEntry {
   profileConfig: ProfileConfig;
@@ -74,18 +78,58 @@ export class TTSQueueProcessor extends EventEmitter {
     this.isProcessing = false;
   }
   
+  private getAudioFilePath(profile: string, timestamp: Date): string {
+    const dateStr = timestamp.toISOString().split('T')[0]; // YYYY-MM-DD
+    const epochTimestamp = Math.floor(timestamp.getTime() / 1000);
+    const audioDir = join(homedir(), '.agent-tts', 'audio', dateStr);
+    return join(audioDir, `${profile}-${epochTimestamp}.mp3`);
+  }
+  
+  private async playExistingAudio(filePath: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const platform = process.platform;
+      let command: string;
+      let args: string[];
+      
+      if (platform === 'darwin') {
+        command = 'afplay';
+        args = [filePath];
+      } else if (platform === 'linux') {
+        command = 'ffplay';
+        args = ['-nodisp', '-autoexit', filePath];
+      } else if (platform === 'win32') {
+        command = 'powershell';
+        args = ['-c', `(New-Object Media.SoundPlayer '${filePath}').PlaySync()`];
+      } else {
+        reject(new Error(`Unsupported platform: ${platform}`));
+        return;
+      }
+      
+      console.log(`[TTSQueue] Playing existing audio: ${filePath}`);
+      const audioProcess = spawn(command, args);
+      
+      audioProcess.on('close', (code) => {
+        if (code === 0) {
+          resolve();
+        } else if (code !== null) {
+          reject(new Error(`Audio playback failed with code ${code}`));
+        } else {
+          resolve(); // Process was killed
+        }
+      });
+      
+      audioProcess.on('error', (err) => {
+        reject(err);
+      });
+    });
+  }
+  
   private async playMessage(message: QueuedMessage): Promise<void> {
     const startTime = Date.now();
     
     try {
       // Set currently playing
       this.currentlyPlaying = message;
-      
-      const ttsService = this.getTTSService(message.profileConfig);
-      
-      if (!ttsService.isAvailable()) {
-        throw new Error('TTS service not available');
-      }
       
       if (message.id) {
         // First, ensure no other entries are stuck in 'playing' state
@@ -99,10 +143,25 @@ export class TTSQueueProcessor extends EventEmitter {
       
       this.emit('playing', message);
       
-      await ttsService.tts(message.filteredText, { 
-        profile: message.profile, 
-        timestamp: message.timestamp 
-      });
+      // Check if we already have the audio file saved
+      const audioFilePath = this.getAudioFilePath(message.profile, message.timestamp);
+      
+      if (existsSync(audioFilePath)) {
+        console.log(`[TTSQueue] Found existing audio file: ${audioFilePath}`);
+        await this.playExistingAudio(audioFilePath);
+      } else {
+        console.log(`[TTSQueue] No existing audio file, generating new TTS`);
+        const ttsService = this.getTTSService(message.profileConfig);
+        
+        if (!ttsService.isAvailable()) {
+          throw new Error('TTS service not available');
+        }
+        
+        await ttsService.tts(message.filteredText, { 
+          profile: message.profile, 
+          timestamp: message.timestamp 
+        });
+      }
       
       const processingTime = Date.now() - startTime;
       
