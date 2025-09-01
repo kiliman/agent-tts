@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-09-01
+
+### ✨ Features
+- Add support for multiple TTS providers (Kokoro, OpenAI, OpenAI-compatible)
+- Implement Kokoro TTS provider for free, local text-to-speech
+- Add OpenAI TTS API integration
+- Support any OpenAI-compatible TTS service (LocalAI, Oobabooga, etc.)
+- Add provider-specific configuration options
+- Include test scripts and example configurations for new providers
+
+### ♻️ Refactoring
+- Update TTS service factory to support multiple providers
+- Improve configuration schema with provider-specific options
+- Add proper voice ID handling for Kokoro
+
+### 📝 Documentation
+- Update README with provider comparison and setup instructions
+- Add Kokoro configuration examples
+- Document available voice options for each provider
+
+### Explanation
+**Minor version bump (0.2.0 → 0.3.0)** because this release adds significant new features (multiple TTS providers) that are backwards compatible. Existing ElevenLabs configurations continue to work without changes.
+
 ## [0.2.0] - 2025-09-01
 
 ### ✨ Features
