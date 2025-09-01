@@ -16,10 +16,10 @@ function testMarkdownFilter() {
 1. First step without period
 2. Second step also no period
 3. Third step ends here`,
-      expected: `Here are the steps:
-First step without period.
-Second step also no period.
-Third step ends here.`
+      expected: `Here are the steps.
+1. First step without period.
+2. Second step also no period.
+3. Third step ends here.`
     },
     // Bullet list with dashes
     {
@@ -27,7 +27,7 @@ Third step ends here.`
 - Real-time TTS
 - Multi-agent support
 - Beautiful UI`,
-      expected: `Features include:
+      expected: `Features include.
 Real-time TTS.
 Multi-agent support.
 Beautiful UI.`
@@ -39,11 +39,11 @@ Beautiful UI.`
 2. Add tests
 3. Update documentation!
 4. Deploy`,
-      expected: `Todo list:
-Complete the filter implementation.
-Add tests.
-Update documentation!
-Deploy.`
+      expected: `Todo list.
+1. Complete the filter implementation.
+2. Add tests.
+3. Update documentation!
+4. Deploy.`
     },
     // List with asterisks
     {
@@ -51,7 +51,7 @@ Deploy.`
 * Option one
 * Option two
 * Option three`,
-      expected: `Options:
+      expected: `Options.
 Option one.
 Option two.
 Option three.`
@@ -62,7 +62,7 @@ Option three.`
 + Faster processing
 + Better accuracy
 + Lower cost`,
-      expected: `Benefits:
+      expected: `Benefits.
 Faster processing.
 Better accuracy.
 Lower cost.`
@@ -105,11 +105,11 @@ Follow these steps:
 That's it!`,
       expected: `Project Setup
 
-Follow these steps:
-Clone the repository.
-Run npm install.
-Configure the settings.
-Start with npm run dev.
+Follow these steps.
+1. Clone the repository.
+2. Run npm install.
+3. Configure the settings.
+4. Start with npm run dev.
 
 That's it!`
     }

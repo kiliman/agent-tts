@@ -49,9 +49,11 @@ export class MarkdownFilter extends BaseFilter {
     // This needs to happen before we remove the list markers
     content = this.addPeriodsToListItems(content);
     
-    // Remove list markers (but we've already added periods)
+    // Remove only bullet list markers (but keep numbers for numbered lists)
     content = content.replace(/^\s*[-*+]\s+/gm, '');
-    content = content.replace(/^\s*\d+\.\s+/gm, '');
+    // For numbered lists, keep the number but remove the extra dot and space
+    // Since we've already added periods, just clean up formatting
+    content = content.replace(/^(\s*\d+)\.\s+/gm, '$1. ');
     
     // Normalize whitespace
     content = content.replace(/[^\S\n]+/g, ' ');  // Replace all whitespace except newlines with single space
@@ -93,6 +95,19 @@ export class MarkdownFilter extends BaseFilter {
           line = this.addPeriodToListItem(line);
         }
       }
+      // If current line is NOT a list item but next line IS, ensure it ends with period
+      // This handles headings/text before lists
+      else if (!isListItem && nextIsListItem && line.trim() !== '') {
+        const trimmed = line.trimEnd();
+        if (!this.endsWithPunctuation(trimmed)) {
+          // If it ends with a colon, replace it with a period
+          if (trimmed.endsWith(':')) {
+            line = trimmed.slice(0, -1) + '.';
+          } else {
+            line = trimmed + '.';
+          }
+        }
+      }
       
       processedLines.push(line);
     }
@@ -119,8 +134,9 @@ export class MarkdownFilter extends BaseFilter {
   }
   
   private endsWithPunctuation(text: string): boolean {
-    // Check if text ends with common punctuation marks
-    return /[.!?;:,]$/.test(text.trim());
+    // Check if text ends with sentence-ending punctuation marks
+    // Don't include colon or comma as they don't provide a full stop
+    return /[.!?]$/.test(text.trim());
   }
   
   private addPeriodToListItem(line: string): string {
