@@ -12,7 +12,7 @@ export interface FileState {
 export class FileStateRepository {
   async getFileState(filePath: string): Promise<FileState | null> {
     const db = getDatabase();
-    const row = await db.get<FileState>(`
+    const stmt = db.prepare(`
       SELECT 
         file_path as filePath,
         profile,
@@ -22,8 +22,9 @@ export class FileStateRepository {
         updated_at as updatedAt
       FROM file_states
       WHERE file_path = ?
-    `, filePath);
+    `);
     
+    const row = stmt.get(filePath) as FileState | undefined;
     return row || null;
   }
 
@@ -31,7 +32,7 @@ export class FileStateRepository {
     const db = getDatabase();
     const now = Date.now();
     
-    await db.run(`
+    const stmt = db.prepare(`
       INSERT INTO file_states (file_path, profile, last_modified, file_size, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT(file_path) DO UPDATE SET
@@ -39,7 +40,9 @@ export class FileStateRepository {
         last_modified = excluded.last_modified,
         file_size = excluded.file_size,
         updated_at = excluded.updated_at
-    `,
+    `);
+    
+    stmt.run(
       state.filePath,
       state.profile,
       state.lastModified,
@@ -51,12 +54,13 @@ export class FileStateRepository {
 
   async deleteFileState(filePath: string): Promise<void> {
     const db = getDatabase();
-    await db.run('DELETE FROM file_states WHERE file_path = ?', filePath);
+    const stmt = db.prepare('DELETE FROM file_states WHERE file_path = ?');
+    stmt.run(filePath);
   }
 
   async getFileStatesByProfile(profile: string): Promise<FileState[]> {
     const db = getDatabase();
-    const rows = await db.all<FileState[]>(`
+    const stmt = db.prepare(`
       SELECT 
         file_path as filePath,
         profile,
@@ -67,13 +71,15 @@ export class FileStateRepository {
       FROM file_states
       WHERE profile = ?
       ORDER BY updated_at DESC
-    `, profile);
+    `);
     
+    const rows = stmt.all(profile) as FileState[];
     return rows;
   }
 
   async deleteFileStatesByProfile(profile: string): Promise<void> {
     const db = getDatabase();
-    await db.run('DELETE FROM file_states WHERE profile = ?', profile);
+    const stmt = db.prepare('DELETE FROM file_states WHERE profile = ?');
+    stmt.run(profile);
   }
 }

@@ -34,7 +34,11 @@ async function startServer() {
     // Initialize app coordinator
     console.log('Starting app coordinator...');
     appCoordinator = new AppCoordinator();
-    await appCoordinator.initialize(config);
+    if (config) {
+      await appCoordinator.initialize(config);
+    } else {
+      throw new Error('Failed to load configuration');
+    }
 
     // Create Express app
     const app = express();
