@@ -69,32 +69,51 @@ export class ElevenLabsTTSService extends BaseTTSService {
       // Play using afplay (macOS) or other platform-specific player
       await this.playAudio(tempFile);
     } catch (error: any) {
-      console.error('[ElevenLabs] TTS Error:', error);
+      // Extract useful error information without dumping entire request object
+      let errorMessage = 'TTS request failed';
+      let errorDetails: any = {};
       
-      // Log more details about the error
       if (error.response) {
-        console.error('[ElevenLabs] Response status:', error.response.status);
-        console.error('[ElevenLabs] Response data:', error.response.data);
+        errorDetails.status = error.response.status;
         
-        // Check for rate limiting
+        // Try to extract meaningful error message
+        if (error.response.data) {
+          if (typeof error.response.data === 'string') {
+            errorMessage = error.response.data;
+          } else if (error.response.data.detail) {
+            errorMessage = error.response.data.detail.message || error.response.data.detail;
+          } else if (error.response.data.error) {
+            errorMessage = error.response.data.error;
+          }
+        }
+        
+        // Add helpful context based on status code
         if (error.response.status === 429) {
-          console.error('[ElevenLabs] RATE LIMITED - Too many requests');
+          errorMessage = 'Rate limited - too many requests';
           const retryAfter = error.response.headers?.['retry-after'];
           if (retryAfter) {
-            console.error(`[ElevenLabs] Retry after: ${retryAfter} seconds`);
+            errorDetails.retryAfter = `${retryAfter} seconds`;
           }
         } else if (error.response.status === 401) {
-          console.error('[ElevenLabs] UNAUTHORIZED - Check API key');
+          errorMessage = 'Unauthorized - check ElevenLabs API key';
         } else if (error.response.status === 400) {
-          console.error('[ElevenLabs] BAD REQUEST - Check text length or format');
+          errorMessage = errorMessage || 'Bad request - check text length or voice ID';
+        } else if (error.response.status === 422) {
+          errorMessage = 'Invalid voice ID or parameters';
         }
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       
-      if (error.message) {
-        console.error('[ElevenLabs] Error message:', error.message);
+      console.error(`[ElevenLabs] TTS Error: ${errorMessage}`);
+      if (Object.keys(errorDetails).length > 0) {
+        console.error('[ElevenLabs] Error details:', errorDetails);
       }
       
-      throw error;
+      // Throw a clean error message instead of the entire error object
+      const cleanError = new Error(errorMessage);
+      (cleanError as any).details = errorDetails;
+      throw cleanError;
     }
   }
   

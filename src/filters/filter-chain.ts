@@ -1,8 +1,9 @@
-import { ParsedMessage, FilterConfig } from "../types/config";
-import { BaseFilter } from "./base-filter";
-import { PronunciationFilter } from "./pronunciation-filter";
-import { LengthFilter } from "./length-filter";
-import { RoleFilter } from "./role-filter";
+import { ParsedMessage, FilterConfig } from "../types/config.js";
+import { BaseFilter } from "./base-filter.js";
+import { PronunciationFilter } from "./pronunciation-filter.js";
+import { LengthFilter } from "./length-filter.js";
+import { RoleFilter } from "./role-filter.js";
+import { EmojiFilter } from "./emoji-filter.js";
 
 export class FilterChain {
   private filters: BaseFilter[] = [];
@@ -33,6 +34,7 @@ export class FilterChain {
 
     if (this.filters.length === 0) {
       this.filters.push(new RoleFilter(["assistant"]));
+      this.filters.push(new EmojiFilter());
       this.filters.push(new PronunciationFilter());
     }
   }
@@ -56,6 +58,11 @@ export class FilterChain {
         const roleFilter = new RoleFilter();
         roleFilter.setEnabled(enabled);
         return roleFilter;
+
+      case "emoji":
+        const emojiFilter = new EmojiFilter();
+        emojiFilter.setEnabled(enabled);
+        return emojiFilter;
 
       default:
         return null;

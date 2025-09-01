@@ -58,11 +58,14 @@ export class TTSQueueProcessor extends EventEmitter {
       try {
         await this.playMessage(message);
       } catch (error) {
-        console.error('Error playing message:', error);
+        // Log clean error message, not entire error object
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`[TTSQueue] Error playing message: ${errorMessage}`);
+        
         if (message.id) {
           await this.database.updateTTSQueueEntry(message.id, {
             state: 'error',
-            apiResponseMessage: error instanceof Error ? error.message : String(error)
+            apiResponseMessage: errorMessage
           });
         }
       }

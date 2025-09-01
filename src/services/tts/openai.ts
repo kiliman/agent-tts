@@ -75,26 +75,61 @@ export class OpenAITTSService extends BaseTTSService {
       // Play using afplay (macOS) or other platform-specific player
       await this.playAudio(tempFile);
     } catch (error: any) {
-      console.error('[OpenAI] TTS Error:', error);
+      // Extract useful error information without dumping entire request object
+      let errorMessage = 'TTS request failed';
+      let errorDetails: any = {};
       
       if (error.response) {
-        console.error('[OpenAI] Response status:', error.response.status);
-        console.error('[OpenAI] Response data:', error.response.data);
+        errorDetails.status = error.response.status;
         
-        if (error.response.status === 429) {
-          console.error('[OpenAI] RATE LIMITED - Too many requests');
-        } else if (error.response.status === 401) {
-          console.error('[OpenAI] UNAUTHORIZED - Check API key');
-        } else if (error.response.status === 400) {
-          console.error('[OpenAI] BAD REQUEST - Check parameters');
+        // Try to parse error response body
+        if (error.response.data) {
+          try {
+            // If data is a buffer, convert to string
+            const responseData = Buffer.isBuffer(error.response.data) 
+              ? JSON.parse(error.response.data.toString())
+              : error.response.data;
+            
+            if (responseData.detail) {
+              errorDetails.detail = responseData.detail;
+              if (responseData.detail.message) {
+                errorMessage = responseData.detail.message;
+              }
+            } else if (responseData.error) {
+              errorDetails.error = responseData.error;
+              errorMessage = typeof responseData.error === 'string' 
+                ? responseData.error 
+                : responseData.error.message || errorMessage;
+            }
+          } catch {
+            // If we can't parse the response, just use the status code
+            errorDetails.rawResponse = error.response.data?.toString?.().substring(0, 200);
+          }
         }
+        
+        // Add helpful context based on status code
+        if (error.response.status === 429) {
+          errorMessage = 'Rate limited - too many requests';
+        } else if (error.response.status === 401) {
+          errorMessage = 'Unauthorized - check API key';
+        } else if (error.response.status === 400) {
+          errorMessage = errorMessage || 'Bad request - check parameters';
+        }
+      } else if (error.code === 'ECONNREFUSED') {
+        errorMessage = `Cannot connect to TTS service at ${this.baseUrl}`;
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       
-      if (error.message) {
-        console.error('[OpenAI] Error message:', error.message);
+      console.error(`[OpenAI] TTS Error: ${errorMessage}`);
+      if (Object.keys(errorDetails).length > 0) {
+        console.error('[OpenAI] Error details:', errorDetails);
       }
       
-      throw error;
+      // Throw a clean error message instead of the entire axios error
+      const cleanError = new Error(errorMessage);
+      (cleanError as any).details = errorDetails;
+      throw cleanError;
     }
   }
   

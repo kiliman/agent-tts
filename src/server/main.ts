@@ -120,6 +120,7 @@ async function startServer() {
     configLoader.on('configChanged', async (newConfig) => {
       console.log('Configuration changed, reloading...');
       await appCoordinator?.updateConfig(newConfig);
+      console.log('Configuration reloaded successfully');
     });
 
     configLoader.on('configError', (error) => {
@@ -134,6 +135,10 @@ async function startServer() {
         }
       });
     });
+
+    // Start watching for config changes
+    configLoader.startWatching();
+    console.log('Watching for configuration changes...');
 
     // Start server
     server.listen(PORT, () => {

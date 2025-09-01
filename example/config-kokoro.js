@@ -32,6 +32,10 @@ export default {
           }
         },
         {
+          name: 'emoji',
+          enabled: true  // Strip emojis so TTS doesn't read emoji names
+        },
+        {
           name: 'length',
           enabled: true,
           filter: (message) => {

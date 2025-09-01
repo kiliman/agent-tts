@@ -109,9 +109,11 @@ Each profile represents an AI agent you want to monitor:
 
 ### Available Filters
 
+- `emoji`: Removes emojis so TTS doesn't say "party pooper" when you meant 🎉
 - `markdown-cleaner`: Removes markdown formatting
 - `pronunciation`: Improves pronunciation (e.g., "git" → "ghit")
 - `code-stripper`: Removes code blocks
+- `role`: Filters messages by role (user/assistant/system)
 - Custom filters can be added via configuration
 
 ## API
