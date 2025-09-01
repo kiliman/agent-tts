@@ -24,7 +24,7 @@ export class PronunciationFilter extends BaseFilter {
     ["ide", "I D E"],
     ["os", "O S"],
     ["io", "I O"],
-    ["tts", "T T S"],
+    ["tts", "tee tee ess"],
     ["async", "a sync"],
     ["sync", "sink"],
     ["regex", "regh ex"],
