@@ -94,7 +94,7 @@ export class WebSocketClient {
 
   connect() {
     const wsURL = process.env.NODE_ENV === 'production' 
-      ? `ws://${window.location.host}/ws`
+      ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
       : 'ws://localhost:3456/ws';
 
     this.ws = new WebSocket(wsURL);

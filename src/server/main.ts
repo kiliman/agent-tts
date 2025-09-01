@@ -4,6 +4,7 @@ import { WebSocketServer } from 'ws';
 import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 import { initializeDatabase } from '../database/schema.js';
 import { ConfigLoader } from '../config/loader.js';
 import { AppCoordinator } from '../services/app-coordinator.js';
@@ -46,9 +47,14 @@ async function startServer() {
     // API routes
     setupApiRoutes(app, appCoordinator);
 
-    // Serve static files in production
-    if (process.env.NODE_ENV === 'production') {
-      const clientPath = path.join(__dirname, '../../dist/client');
+    // Serve static files
+    const clientPath = path.join(__dirname, '../../dist/client');
+    
+    // Check if client build exists
+    const clientBuildExists = fs.existsSync(clientPath);
+    
+    if (clientBuildExists) {
+      console.log('Serving frontend from:', clientPath);
       app.use(express.static(clientPath));
       
       // Fallback to index.html for client-side routing
@@ -58,6 +64,8 @@ async function startServer() {
           res.sendFile(path.join(clientPath, 'index.html'));
         }
       });
+    } else if (process.env.NODE_ENV === 'production') {
+      console.warn('Frontend build not found! Run "npm run build:client" first.');
     }
 
     // Setup WebSocket
@@ -86,9 +94,11 @@ async function startServer() {
     // Start server
     server.listen(PORT, () => {
       console.log(`Agent TTS server running at http://${HOST}:${PORT}`);
-      console.log(`Web UI available at http://${HOST}:${PORT}`);
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`Development mode: Run 'npm run dev:client' for hot reload`);
+      if (clientBuildExists) {
+        console.log(`Web UI available at http://${HOST}:${PORT}`);
+      } else {
+        console.log(`Web UI not built yet. Run 'npm run build:client' to build the frontend.`);
+        console.log(`For hot reload development, use 'npm run dev:separate' instead.`);
       }
     });
 
