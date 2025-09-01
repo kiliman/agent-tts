@@ -52,24 +52,43 @@ async function startServer() {
     // API routes
     setupApiRoutes(app, appCoordinator);
 
-    // Serve user images from ~/.agent-tts/images (takes priority)
+    // Serve images with priority: user images first, then public images as fallback
     const userImagesPath = path.join(os.homedir(), '.agent-tts', 'images');
     if (!fs.existsSync(userImagesPath)) {
       // Create the directory if it doesn't exist
       fs.mkdirSync(userImagesPath, { recursive: true });
       console.log('Created user images directory:', userImagesPath);
     }
-    // Always mount user images directory (even if empty)
-    console.log('Serving user images from:', userImagesPath);
-    app.use('/images', express.static(userImagesPath));
     
-    // In development, also serve from public/images as fallback
-    if (process.env.NODE_ENV !== 'production') {
-      const publicImagesPath = path.join(__dirname, '../../public/images');
-      if (fs.existsSync(publicImagesPath)) {
-        console.log('Serving public images from:', publicImagesPath);
-        app.use('/images', express.static(publicImagesPath));
+    // Custom middleware to serve images from multiple directories with priority
+    app.use('/images', (req, res, next) => {
+      const imageName = req.path.substring(1); // Remove leading slash
+      const userImagePath = path.join(userImagesPath, imageName);
+      
+      // First try user images directory
+      if (fs.existsSync(userImagePath)) {
+        console.log(`Serving user image: ${imageName}`);
+        return res.sendFile(userImagePath);
       }
+      
+      // Then try public images directory in development
+      if (process.env.NODE_ENV !== 'production') {
+        const publicImagesPath = path.join(__dirname, '../../public/images');
+        const publicImagePath = path.join(publicImagesPath, imageName);
+        if (fs.existsSync(publicImagePath)) {
+          console.log(`Serving public image: ${imageName}`);
+          return res.sendFile(publicImagePath);
+        }
+      }
+      
+      // Image not found in either location
+      next();
+    });
+    
+    console.log('Image directories configured:');
+    console.log('  User images:', userImagesPath);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('  Public images (fallback):', path.join(__dirname, '../../public/images'));
     }
 
     // Serve static files

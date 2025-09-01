@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { apiClient, wsClient } from "../services/api";
 import clsx from "clsx";
+import { getResourceUrl } from "../utils/url";
 
 interface ProfileCard {
   profile: string;
@@ -25,44 +26,64 @@ export function Dashboard() {
   useEffect(() => {
     loadProfileCards();
 
-    // Connect WebSocket if not already connected
-    if (!wsClient) {
-      return;
-    }
+    // Setup WebSocket listener
+    console.log("[Dashboard] Setting up WebSocket listener");
 
     // Listen for new log entries
     const handleNewLog = (data: any) => {
-      if (data.log) {
+      console.log("[Dashboard] Received log-added event:", data);
+      if (data) {
         // Update the profile card for this profile with the new message
-        setProfileCards(prevCards => {
+        setProfileCards((prevCards) => {
+          console.log("[Dashboard] Current cards:", prevCards);
+          console.log("[Dashboard] Looking for profile:", data.profile);
+
           const existingCardIndex = prevCards.findIndex(
-            card => card.profile === data.log.profile
+            (card) => card.profile === data.profile
           );
-          
+
+          console.log("[Dashboard] Found card at index:", existingCardIndex);
+
           if (existingCardIndex !== -1) {
             // Update existing card
             const newCards = [...prevCards];
             newCards[existingCardIndex] = {
               ...prevCards[existingCardIndex],
-              id: data.log.id,
-              originalText: data.log.originalText,
-              filteredText: data.log.filteredText,
-              timestamp: data.log.timestamp,
-              status: data.log.status
+              id: data.id,
+              originalText: data.originalText,
+              filteredText: data.filteredText,
+              timestamp: data.timestamp,
+              status: data.status,
+              profileUrl:
+                data.profileUrl || prevCards[existingCardIndex].profileUrl,
+              avatarUrl:
+                data.avatarUrl || prevCards[existingCardIndex].avatarUrl,
+              voiceName:
+                data.voiceName || prevCards[existingCardIndex].voiceName,
             };
+            console.log(
+              "[Dashboard] Updated card:",
+              newCards[existingCardIndex]
+            );
             return newCards;
           } else {
-            // Add new card if profile doesn't exist yet
-            return [...prevCards, data.log];
+            // Profile doesn't exist in dashboard yet, skip
+            // (Dashboard only shows profiles that have had at least one message)
+            console.log(
+              "[Dashboard] Profile not found in existing cards, skipping"
+            );
+            return prevCards;
           }
         });
       }
     };
 
-    wsClient.on('new-log', handleNewLog);
+    wsClient.on("log-added", handleNewLog);
+    console.log("[Dashboard] WebSocket listener attached");
 
     return () => {
-      wsClient.off('new-log', handleNewLog);
+      console.log("[Dashboard] Cleaning up WebSocket listener");
+      wsClient.off("log-added", handleNewLog);
     };
   }, []);
 
@@ -144,7 +165,7 @@ export function Dashboard() {
             className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200 dark:border-gray-700 flex overflow-clip"
           >
             <img
-              src={card.profileUrl}
+              src={getResourceUrl(card.profileUrl)}
               alt={card.profileName}
               className="w-48 h-full object-cover"
             />

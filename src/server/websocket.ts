@@ -2,6 +2,32 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { AppCoordinator } from '../services/app-coordinator.js';
 
 export function setupWebSocket(wss: WebSocketServer, coordinator: AppCoordinator) {
+  // Setup global event listeners that broadcast to all clients
+  const broadcastToAll = (type: string, data: any) => {
+    const message = JSON.stringify({ type, data });
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
+  };
+
+  // Global event listeners - broadcast to all connected clients
+  coordinator.on('log-added', (log) => {
+    console.log('[WebSocket] Broadcasting log-added to all clients');
+    broadcastToAll('log-added', log);
+  });
+
+  coordinator.on('status-changed', (status) => {
+    console.log('[WebSocket] Broadcasting status-changed to all clients');
+    broadcastToAll('status-changed', status);
+  });
+
+  coordinator.on('queue-updated', (queue) => {
+    console.log('[WebSocket] Broadcasting queue-updated to all clients');
+    broadcastToAll('queue-updated', queue);
+  });
+
   wss.on('connection', (ws: WebSocket) => {
     console.log('WebSocket client connected');
 
@@ -39,29 +65,9 @@ export function setupWebSocket(wss: WebSocketServer, coordinator: AppCoordinator
       }
     });
 
-    // Setup event listeners for coordinator events
-    const handleLogAdded = (log: any) => {
-      ws.send(JSON.stringify({ type: 'log-added', data: log }));
-    };
-
-    const handleStatusChanged = (status: any) => {
-      ws.send(JSON.stringify({ type: 'status-changed', data: status }));
-    };
-
-    const handleQueueUpdated = (queue: any) => {
-      ws.send(JSON.stringify({ type: 'queue-updated', data: queue }));
-    };
-
-    coordinator.on('log-added', handleLogAdded);
-    coordinator.on('status-changed', handleStatusChanged);
-    coordinator.on('queue-updated', handleQueueUpdated);
-
     // Cleanup on disconnect
     ws.on('close', () => {
       console.log('WebSocket client disconnected');
-      coordinator.off('log-added', handleLogAdded);
-      coordinator.off('status-changed', handleStatusChanged);
-      coordinator.off('queue-updated', handleQueueUpdated);
     });
 
     ws.on('error', (error) => {

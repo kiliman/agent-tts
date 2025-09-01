@@ -4,6 +4,7 @@ import { LogViewer } from './LogViewer';
 import { ToggleSwitch } from './ToggleSwitch';
 import { apiClient, wsClient } from '../services/api';
 import { RefreshCw, Bot, AlertCircle } from 'lucide-react';
+import { getResourceUrl } from '../utils/url';
 
 interface ProfileLogViewerProps {
   refreshTrigger?: number;
@@ -137,7 +138,7 @@ export function ProfileLogViewer({
             <div className="flex items-center gap-4">
               {profileInfo.profileUrl || profileInfo.avatarUrl ? (
                 <img 
-                  src={profileInfo.profileUrl || profileInfo.avatarUrl} 
+                  src={getResourceUrl(profileInfo.profileUrl || profileInfo.avatarUrl)} 
                   alt={profileInfo.name}
                   className="h-20 w-20 rounded-lg object-cover"
                 />
