@@ -1,75 +1,138 @@
 # agent-tts
 
-This app is an Electron app that will monitor changes to files that contain chat logs of various agents: claude-code,
-opencode, etc. It will then process those logs via parser configs to generate message to send to the TTS service for
-playback.
+This app is a Node.js/Express application with a React frontend that monitors changes to files containing chat logs from various agents (Claude Code, OpenCode, etc.). It processes these logs via parser configs to generate messages for text-to-speech playback.
+
+## Architecture
+
+The application runs as a unified service on a single port (default: 3456), serving both the API and the frontend. It consists of:
+
+- **Backend**: Express server with WebSocket support for real-time updates
+- **Frontend**: React SPA with Tailwind CSS for styling
+- **Database**: SQLite for persistent storage of logs and file tracking
+- **TTS Service**: ElevenLabs integration with stoppable audio playback
 
 ## Configuration
 
-The configuration files will be JavaScript/TypeScript files with default exports. The user can extend the configuration
-by importing other config files and using the spread operator and other techniques to build the configuration.
+Configuration files are JavaScript/TypeScript files with default exports. Users can extend configurations by importing other config files and using spread operators.
 
-By default, the configuration will be stored in `~/.agent-tts`. Unless specified, the initial config will be imported as
-`~/.agent-tts/index.{js,ts}`.
+Default configuration location: `~/.agent-tts/index.{js,ts}`
 
-Configuration should be hot-reloaded, so monitor for changes. Since we're loading dynamic JavaScript/TypeScript, if
-there's a syntax error, report the error with as much detail as possible. Do not overwrite the existing configuration
-until the new config is successfully parsed and evaluated.
+Configuration features:
+- Hot-reload support with file watching
+- Error reporting for syntax issues
+- TypeScript support via `ts-blank-space` for type erasure
+- Profile-based configuration for different agents
 
-Since we're using Electron with built-in node, we'll need to use a package like `ts-blank-space` to erase types on
-dynamic configuration imports.
+## File Monitoring
 
-## Monitoring File Changes
+The system monitors specified log files for changes:
 
-During start up, read all the files indicated by the watch config and maintain a log of last modified data and file
-size. Store this information in SQLite. Only one row per file. Update the existing entry when a file change is detected.
-Only update after successful processing of the current change.
+1. On startup, reads all files specified in watch config
+2. Maintains last modified date and file size in SQLite
+3. When changes detected, reads new content from last offset
+4. Sends content to profile-specific parser
+5. Processes messages through filter chain
+6. Queues filtered text for TTS playback
 
-As a file change is detected, it will read the file starting from last file size offset to end of file, and send this
-content to the parser defined in the profile config. The parser is responsible for returning an array of messages to
-convert to speech. Update last modified data and file size.
-
-Each message will then be processed through a set of filters defined for the profile. These filters will convert the
-message into something suitable for speech, like stripping out code and converting text for improved pronunciation, like
-`git` => `ghit` to ensure the word is pronounced with a hard `G` sound instead of `J`.
-
-Skip any non-truthy results from the filter function.
-
-If a change is detected while processing the current change, queue up the change for processing. It should not process
-more than one change at a time.
+Features:
+- One database row per monitored file
+- Queue-based processing (one change at a time)
+- Offset-based reading for efficiency
 
 ## Text-to-Speech
 
-For each valid response, queue up the filtered text to convert to speech using the configured TTS service. For example,
-there will be one for ElevenLabs. The service class will include an async `tts` method that takes the text to speak, and
-play the resulting audio. Since multiple messages can be processed, we need to ensure we don't process additional
-messages until the current message has finished playing, otherwise the audio will overlap making it difficult to hear.
+TTS implementation using ElevenLabs:
 
-The TTS Service class constructor will take in the TTSServiceConfig object. This provides the necessary configuration to
-call the service. For example, ElevenLabs will include model and voice id.
+- Stoppable audio playback using child processes (`afplay` on macOS)
+- Queue-based processing to prevent audio overlap
+- Database logging of all TTS entries with:
+  - Timestamp
+  - Filename and profile
+  - Original and filtered text
+  - Status (queued, playing, played, error)
+  - API response details
+  - Processing time
 
-Store entries in a local SQLite database. Include timestamp, filename, profile, original text, filtered text, state
-(queued, played, error), TTS API response status, API response message (or error message), elapsed processing time (API
-request time).
+## API Endpoints
 
-## Electron
+- `POST /api/tts/stop` - Stop current playback
+- `POST /api/tts/pause` - Pause playback
+- `POST /api/tts/resume` - Resume playback
+- `POST /api/tts/skip` - Skip current item
+- `GET /api/profiles` - Get all profiles
+- `PUT /api/profiles/:id` - Enable/disable profile
+- `GET /api/logs` - Get log entries
+- `POST /api/logs/:id/replay` - Replay a log entry
+- `GET /api/status` - Get system status
+- `POST /api/config/reload` - Reload configuration
 
-The Electron app will be written in TypeScript. It will register an icon in the menu bar. When clicked, it will display
-a menu showing the active profiles with checkmarks. The user can toggle the checkmarks to enable/disable profiles. Save
-the state of the checkmarks for subsequent execution. The user should also be able to toggle all sound playback with a
-Mute option. The user should be able to configure a global hotkey that will stop the current TTS playback. Default to
-Ctrl+Esc.
+## UI Features
 
-## UI
+### Dashboard
+- Profile cards with avatars and latest messages
+- Click to navigate to profile-specific pages
+- Real-time status updates via WebSocket
 
-In addition the menu support, add an option to display a Log view. This will open a window with the last 50 TTS entries.
-It will show the the profile icon (to differentiate between claude-code and opencode, for example). It will show the
-original text as a single line with ellipsis for truncated text. There will be an down arrow icon that will expand the
-log entry showing original text, plus the transformed text (what was actually sent to the TTS service).
+### Profile Log Viewer
+- Dedicated pages for each profile (e.g., `/claudia`, `/opencode`)
+- Profile header with avatar and controls
+- iOS-style toggle switches for:
+  - Auto-scroll
+  - Refresh
+- Single-line log entries showing original text
+- Expandable entries to view filtered text
+- Replay functionality for individual entries
+- Visual states:
+  - Grayscale for queued items
+  - Green outline for currently playing
+  - Normal appearance for played items
 
-The Log view list should scroll automatically as new entries are shown. Next to the profile icon, there should be a play
-button that will replay the existing log entry. While playing, the icon should turn to a pause button. If a new entry is
-being processed and is currently playing, it too should have the pause icon. Any entries that are queued for future
-playback should display an icon (circular arrows, like a spinner).
+### Design
+- Dark mode support following system settings
+- Tailwind CSS for styling
+- Lucide React icons throughout
+- Responsive layout
 
-Support both light and dark mode, following system setting. Use React for the UI.
+## WebSocket Events
+
+Real-time updates for:
+- New log entries
+- Status changes (playing/stopped)
+- Configuration errors
+- Profile updates
+
+## Global Controls
+
+- Stop playback via API endpoint `/api/tts/stop`
+- Can be triggered by Better Touch Tool with Control+Escape
+- Mute toggle functionality
+
+## Development
+
+```bash
+# Development with hot reload (unified)
+npm run dev
+
+# Development with separate frontend/backend
+npm run dev:separate
+
+# Production build
+npm run build
+
+# Start production server
+npm run start:prod
+```
+
+Environment variables:
+- `PORT` - Server port (default: 3456)
+- `HOST` - Server host (default: localhost)
+- `NODE_ENV` - Environment (development/production)
+
+## Key Implementation Details
+
+1. **Parser Architecture**: Modular parsers for different agent formats
+2. **Filter Chain**: Text transformation pipeline for TTS optimization
+3. **Child Process Audio**: Stoppable playback using system commands
+4. **WebSocket Integration**: Real-time UI updates without polling
+5. **Single-Port Deployment**: Simplified deployment with Express serving React build
+6. **Protocol Detection**: Automatic ws:// vs wss:// based on page protocol
