@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { apiClient } from "../services/api";
+import { apiClient, wsClient } from "../services/api";
 import clsx from "clsx";
 
 interface ProfileCard {
@@ -24,6 +24,46 @@ export function Dashboard() {
 
   useEffect(() => {
     loadProfileCards();
+
+    // Connect WebSocket if not already connected
+    if (!wsClient) {
+      return;
+    }
+
+    // Listen for new log entries
+    const handleNewLog = (data: any) => {
+      if (data.log) {
+        // Update the profile card for this profile with the new message
+        setProfileCards(prevCards => {
+          const existingCardIndex = prevCards.findIndex(
+            card => card.profile === data.log.profile
+          );
+          
+          if (existingCardIndex !== -1) {
+            // Update existing card
+            const newCards = [...prevCards];
+            newCards[existingCardIndex] = {
+              ...prevCards[existingCardIndex],
+              id: data.log.id,
+              originalText: data.log.originalText,
+              filteredText: data.log.filteredText,
+              timestamp: data.log.timestamp,
+              status: data.log.status
+            };
+            return newCards;
+          } else {
+            // Add new card if profile doesn't exist yet
+            return [...prevCards, data.log];
+          }
+        });
+      }
+    };
+
+    wsClient.on('new-log', handleNewLog);
+
+    return () => {
+      wsClient.off('new-log', handleNewLog);
+    };
   }, []);
 
   const loadProfileCards = async () => {
