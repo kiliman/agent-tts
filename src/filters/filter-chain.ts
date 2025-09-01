@@ -6,6 +6,7 @@ import { RoleFilter } from "./role-filter.js";
 import { EmojiFilter } from "./emoji-filter.js";
 import { UrlFilter } from "./url-filter.js";
 import { FilepathFilter } from "./filepath-filter.js";
+import { MarkdownFilter } from "./markdown-filter.js";
 
 export class FilterChain {
   private filters: BaseFilter[] = [];
@@ -36,6 +37,7 @@ export class FilterChain {
 
     if (this.filters.length === 0) {
       this.filters.push(new RoleFilter(["assistant"]));
+      this.filters.push(new MarkdownFilter());
       this.filters.push(new UrlFilter());
       this.filters.push(new EmojiFilter());
       this.filters.push(new FilepathFilter());
@@ -77,6 +79,11 @@ export class FilterChain {
         const filepathFilter = new FilepathFilter();
         filepathFilter.setEnabled(enabled);
         return filepathFilter;
+
+      case "markdown":
+        const markdownFilter = new MarkdownFilter();
+        markdownFilter.setEnabled(enabled);
+        return markdownFilter;
 
       default:
         return null;
