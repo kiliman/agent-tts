@@ -247,11 +247,20 @@ export class AppCoordinator extends EventEmitter {
 
   async getLogsWithAvatars(
     limit: number = 50,
-    profileFilter?: string
+    profileFilter?: string,
+    favoritesOnly: boolean = false
   ): Promise<any[]> {
-    const logs = profileFilter
-      ? this.database.getTTSLog().getLogsByProfile(profileFilter, limit)
-      : this.database.getTTSLog().getRecentLogs(limit);
+    let logs;
+    
+    if (favoritesOnly) {
+      logs = profileFilter
+        ? this.database.getTTSLog().getFavoritesByProfile(profileFilter, limit)
+        : this.database.getTTSLog().getAllFavorites(limit);
+    } else {
+      logs = profileFilter
+        ? this.database.getTTSLog().getLogsByProfile(profileFilter, limit)
+        : this.database.getTTSLog().getRecentLogs(limit);
+    }
 
     // Enrich logs with avatar info from config
     return logs.map((log) => {

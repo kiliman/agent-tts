@@ -120,6 +120,54 @@ export class TTSLogRepository {
   getLogsByProfile(profile: string, limit: number = 50): TTSLogRecord[] {
     return this.getEntriesByProfile(profile, limit);
   }
+  
+  getFavoritesByProfile(profile: string, limit: number = 50): TTSLogRecord[] {
+    const rows = this.db.prepare(`
+      SELECT 
+        id,
+        timestamp,
+        filename as filePath,
+        profile,
+        original_text as originalText,
+        filtered_text as filteredText,
+        state as status,
+        api_response_status as ttsStatus,
+        api_response_message as ttsMessage,
+        processing_time as elapsed,
+        is_favorite as isFavorite,
+        created_at as createdAt
+      FROM tts_queue
+      WHERE profile = ? AND is_favorite = 1
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `).all(profile, limit) as any[];
+    
+    return rows;
+  }
+  
+  getAllFavorites(limit: number = 50): TTSLogRecord[] {
+    const rows = this.db.prepare(`
+      SELECT 
+        id,
+        timestamp,
+        filename as filePath,
+        profile,
+        original_text as originalText,
+        filtered_text as filteredText,
+        state as status,
+        api_response_status as ttsStatus,
+        api_response_message as ttsMessage,
+        processing_time as elapsed,
+        is_favorite as isFavorite,
+        created_at as createdAt
+      FROM tts_queue
+      WHERE is_favorite = 1
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `).all(limit) as any[];
+    
+    return rows;
+  }
 
   getEntriesByStatus(status: 'queued' | 'played' | 'error', limit: number = 50): TTSLogRecord[] {
     const rows = this.db.prepare(`

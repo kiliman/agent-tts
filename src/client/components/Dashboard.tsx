@@ -211,12 +211,16 @@ export function Dashboard() {
                 {truncateText(card.originalText)}
               </p>
               {favoritesCounts[card.profile] > 0 && (
-                <div className="flex items-center gap-1.5">
+                <Link
+                  to={`/${card.profile}?favorites`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-1.5 hover:opacity-70 transition-opacity"
+                >
                   <Heart className="w-3 h-3 fill-red-500 text-red-500" />
                   <span className="text-xs text-gray-600 dark:text-gray-400">
                     {favoritesCounts[card.profile]} favorite{favoritesCounts[card.profile] !== 1 ? 's' : ''}
                   </span>
-                </div>
+                </Link>
               )}
 
               <div className="flex items-center justify-end text-xs text-gray-500 dark:text-gray-400">

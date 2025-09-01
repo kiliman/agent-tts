@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { LogViewer } from './LogViewer';
 import { ToggleSwitch } from './ToggleSwitch';
 import { apiClient, wsClient } from '../services/api';
-import { RefreshCw, Bot, AlertCircle, Heart } from 'lucide-react';
+import { RefreshCw, Bot, AlertCircle, Heart, X } from 'lucide-react';
 import { getResourceUrl } from '../utils/url';
 
 interface ProfileLogViewerProps {
@@ -20,6 +20,10 @@ export function ProfileLogViewer({
   onAutoScrollChange
 }: ProfileLogViewerProps) {
   const { profile } = useParams<{ profile: string }>();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const favoritesOnly = searchParams.has('favorites');
+  
   const [logs, setLogs] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [playingId, setPlayingId] = useState<number | null>(null);
@@ -32,7 +36,7 @@ export function ProfileLogViewer({
       loadProfileInfo();
       loadFavoritesCount();
     }
-  }, [profile, refreshTrigger]);
+  }, [profile, refreshTrigger, favoritesOnly]);
 
   useEffect(() => {
     // WebSocket event handlers for real-time updates
@@ -81,10 +85,10 @@ export function ProfileLogViewer({
     if (!profile) return;
     
     try {
-      console.log(`Loading logs for profile: ${profile}`);
-      const response = await apiClient.getLogs(50, profile);
+      console.log(`Loading ${favoritesOnly ? 'favorite' : 'all'} logs for profile: ${profile}`);
+      const response = await apiClient.getLogs(50, profile, favoritesOnly);
       if (response.success && response.logs) {
-        console.log(`Fetched ${response.logs.length} logs for ${profile}`);
+        console.log(`Fetched ${response.logs.length} ${favoritesOnly ? 'favorite' : ''} logs for ${profile}`);
         setLogs(response.logs);
       }
     } catch (err) {
@@ -191,12 +195,21 @@ export function ProfileLogViewer({
                   </p>
                 )}
                 {favoritesCount > 0 && (
-                  <div className="flex items-center gap-1.5 mt-2">
+                  <button
+                    onClick={() => {
+                      if (favoritesOnly) {
+                        navigate(`/${profile}`);
+                      } else {
+                        navigate(`/${profile}?favorites`);
+                      }
+                    }}
+                    className="flex items-center gap-1.5 mt-2 hover:opacity-80 transition-opacity"
+                  >
                     <Heart className="w-4 h-4 fill-red-500 text-red-500" />
                     <span className="text-sm text-gray-600 dark:text-gray-400">
                       {favoritesCount} favorite{favoritesCount !== 1 ? 's' : ''}
                     </span>
-                  </div>
+                  </button>
                 )}
               </div>
             </div>
@@ -229,6 +242,22 @@ export function ProfileLogViewer({
         <div className="bg-red-500 text-white px-6 py-3 flex items-center gap-2">
           <AlertCircle className="w-5 h-5" />
           <span>{error}</span>
+        </div>
+      )}
+      
+      {favoritesOnly && (
+        <div className="bg-red-50 dark:bg-red-900/20 px-6 py-2 flex items-center justify-between border-b border-red-200 dark:border-red-800">
+          <div className="flex items-center gap-2">
+            <Heart className="w-4 h-4 fill-red-500 text-red-500" />
+            <span className="text-sm font-medium text-red-700 dark:text-red-300">Showing favorites only</span>
+          </div>
+          <button
+            onClick={() => navigate(`/${profile}`)}
+            className="p-1 hover:bg-red-100 dark:hover:bg-red-900/40 rounded transition-colors"
+            title="Show all logs"
+          >
+            <X className="w-4 h-4 text-red-600 dark:text-red-400" />
+          </button>
         </div>
       )}
       

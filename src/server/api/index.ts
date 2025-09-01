@@ -65,7 +65,8 @@ export function setupApiRoutes(app: Express, coordinator: AppCoordinator) {
     try {
       const limit = parseInt(req.query.limit as string) || 50;
       const profile = req.query.profile as string | undefined;
-      const logs = await coordinator.getLogsWithAvatars(limit, profile);
+      const favoritesOnly = req.query.favorites === 'true';
+      const logs = await coordinator.getLogsWithAvatars(limit, profile, favoritesOnly);
       res.json({ success: true, logs });
     } catch (error) {
       res.status(500).json({ success: false, error: (error as Error).message });
