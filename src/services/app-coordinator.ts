@@ -1,4 +1,5 @@
 import { EventEmitter } from "events";
+import { homedir } from "os";
 import { AgentTTSConfig, ProfileConfig } from "../types/config.js";
 import { DatabaseManager } from "./database.js";
 import { FileMonitor } from "./file-monitor.js";
@@ -62,6 +63,7 @@ export class AppCoordinator extends EventEmitter {
           originalText: message.originalText,
           filteredText: message.filteredText,
           status: "queued",
+          cwd: this.replaceHomeWithTilde(message.cwd),
           avatarUrl: message.profileConfig?.ttsService?.avatarUrl,
           profileUrl: message.profileConfig?.ttsService?.profileUrl,
           voiceName: message.profileConfig?.ttsService?.voiceName,
@@ -245,6 +247,15 @@ export class AppCoordinator extends EventEmitter {
     await this.toggleProfile(profileId, enabled);
   }
 
+  private replaceHomeWithTilde(path: string | undefined): string | undefined {
+    if (!path) return path;
+    const home = homedir();
+    if (path.startsWith(home)) {
+      return path.replace(home, '~');
+    }
+    return path;
+  }
+
   async getLogsWithAvatars(
     limit: number = 50,
     profileFilter?: string,
@@ -263,11 +274,12 @@ export class AppCoordinator extends EventEmitter {
         : this.database.getTTSLog().getRecentLogs(limit, offset);
     }
 
-    // Enrich logs with avatar info from config
+    // Enrich logs with avatar info from config and simplify paths
     return logs.map((log) => {
       const profile = this.config?.profiles.find((p) => p.id === log.profile);
       return {
         ...log,
+        cwd: this.replaceHomeWithTilde(log.cwd),
         avatarUrl: profile?.ttsService?.avatarUrl,
         profileUrl: profile?.ttsService?.profileUrl,
         voiceName: profile?.ttsService?.voiceName,

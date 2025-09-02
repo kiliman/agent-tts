@@ -88,8 +88,17 @@ export class PronunciationFilter extends BaseFilter {
     for (const [original, replacement] of this.replacements) {
       // Escape special regex characters in the original string
       const escaped = original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const regex = new RegExp(`\\b${escaped}\\b`, "gi");
-      content = content.replace(regex, ` ${replacement} `);
+      
+      // Special handling for non-word characters like ~
+      if (original === "~") {
+        // Replace ~ when it appears at the start of a path
+        const tildeRegex = new RegExp(`${escaped}/`, "g");
+        content = content.replace(tildeRegex, `${replacement} slash `);
+      } else {
+        // Use word boundaries for regular words
+        const regex = new RegExp(`\\b${escaped}\\b`, "gi");
+        content = content.replace(regex, ` ${replacement} `);
+      }
     }
 
     // Add space between camelCase words (e.g., "myVariable" -> "my Variable")
