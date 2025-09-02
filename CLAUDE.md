@@ -8,8 +8,9 @@ The application runs as a unified service on a single port (default: 3456), serv
 
 - **Backend**: Express server with WebSocket support for real-time updates
 - **Frontend**: React SPA with Tailwind CSS for styling
-- **Database**: SQLite for persistent storage of logs and file tracking
-- **TTS Service**: ElevenLabs integration with stoppable audio playback
+- **Database**: SQLite for persistent storage of logs, file tracking, and favorites
+- **TTS Services**: Multiple providers (ElevenLabs, OpenAI, Kokoro) for text-to-speech generation
+- **Audio Player**: Dedicated service for audio playback with proper process management
 
 ## Configuration
 
@@ -41,15 +42,19 @@ Features:
 
 ## Text-to-Speech
 
-TTS implementation using ElevenLabs:
+TTS implementation with multiple providers:
 
-- Stoppable audio playback using child processes (`afplay` on macOS)
-- Queue-based processing to prevent audio overlap
-- Database logging of all TTS entries with:
-  - Timestamp
-  - Filename and profile
+- **Providers**: ElevenLabs, OpenAI, and Kokoro (local) support
+- **Audio Storage**: Permanent audio files saved to `~/.agent-tts/audio/YYYY-MM-DD/profile-timestamp.mp3`
+- **Audio Replay**: Cached audio files are reused when replaying messages
+- **AudioPlayer Service**: Centralized audio playback with proper process management
+- **Stoppable Playback**: Works for both new TTS generation and replayed audio files
+- **Queue-based Processing**: Prevents audio overlap with proper queue management
+- **Database Logging**: All TTS entries tracked with:
+  - Timestamp and profile
   - Original and filtered text
   - Status (queued, playing, played, error)
+  - Favorite status for memorable moments
   - API response details
   - Processing time
 
@@ -61,8 +66,10 @@ TTS implementation using ElevenLabs:
 - `POST /api/tts/skip` - Skip current item
 - `GET /api/profiles` - Get all profiles
 - `PUT /api/profiles/:id` - Enable/disable profile
-- `GET /api/logs` - Get log entries
-- `POST /api/logs/:id/replay` - Replay a log entry
+- `GET /api/logs` - Get log entries with pagination support
+- `POST /api/logs/:id/replay` - Replay a log entry (uses cached audio if available)
+- `POST /api/logs/:id/favorite` - Toggle favorite status
+- `GET /api/favorites/count` - Get favorites count
 - `GET /api/status` - Get system status
 - `POST /api/config/reload` - Reload configuration
 
@@ -70,6 +77,7 @@ TTS implementation using ElevenLabs:
 
 ### Dashboard
 - Profile cards with avatars and latest messages
+- Favorites count with clickable navigation to filtered view
 - Click to navigate to profile-specific pages
 - Real-time status updates via WebSocket
 
@@ -77,14 +85,20 @@ TTS implementation using ElevenLabs:
 - Dedicated pages for each profile (e.g., `/claudia`, `/opencode`)
 - Profile header with avatar and controls
 - iOS-style toggle switches for:
-  - Auto-scroll
+  - Auto-scroll (smart detection skips during pagination)
   - Refresh
-- Single-line log entries showing original text
-- Expandable entries to view filtered text
+- **Infinite Scroll**: Load older messages by scrolling up
+- **Favorites System**: 
+  - Heart icon to mark/unmark favorites
+  - Click favorites count to view only favorites
+  - URL parameter `?favorites` for filtered view
+- Single-line log entries showing original text (click to expand)
+- Expandable entries to view both original and filtered text
 - Replay functionality for individual entries
 - Visual states:
   - Grayscale for queued items
-  - Green outline for currently playing
+  - Green outline with pulse animation for currently playing
+  - Red hearts for favorited items
   - Normal appearance for played items
 
 ### Design
@@ -132,7 +146,10 @@ Environment variables:
 
 1. **Parser Architecture**: Modular parsers for different agent formats
 2. **Filter Chain**: Text transformation pipeline for TTS optimization
-3. **Child Process Audio**: Stoppable playback using system commands
-4. **WebSocket Integration**: Real-time UI updates without polling
-5. **Single-Port Deployment**: Simplified deployment with Express serving React build
-6. **Protocol Detection**: Automatic ws:// vs wss:// based on page protocol
+3. **AudioPlayer Service**: Centralized audio playback with proper process management
+4. **TTS Service Architecture**: Clean separation between TTS generation and playback
+5. **Audio Caching**: Permanent storage and reuse of generated audio files
+6. **WebSocket Integration**: Real-time UI updates without polling
+7. **Virtual Pagination**: Efficient infinite scroll with deduplication
+8. **Single-Port Deployment**: Simplified deployment with Express serving React build
+9. **Protocol Detection**: Automatic ws:// vs wss:// based on page protocol
