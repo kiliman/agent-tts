@@ -12,8 +12,12 @@ Real-time text-to-speech for AI coding assistants. Talk with Claude, OpenCode, a
 - 🎨 **Beautiful UI**: Modern React interface with dark mode support
 - 🔊 **Multiple TTS providers**: ElevenLabs, OpenAI, Kokoro, and any OpenAI-compatible service
 - ⌨️ **Global hotkeys**: Control playback from anywhere (Ctrl+Esc)
-- 📊 **Message history**: Review and replay past messages
+- 📊 **Message history**: Review and replay past messages with infinite scroll
 - 🔄 **Live updates**: WebSocket-powered real-time UI
+- ⭐ **Favorites system**: Save and filter important messages
+- 📁 **Project tracking**: See which project each message came from (CWD)
+- 🔍 **Smart filtering**: Filter by profile, project, or favorites
+- 💾 **Audio archiving**: Saves TTS audio for instant replay
 
 ## Installation
 
@@ -111,12 +115,14 @@ Each profile represents an AI agent you want to monitor:
 
 - `url`: Replaces URLs with "URL" so TTS doesn't spell out "h-t-t-p-s-colon-slash-slash..."
 - `emoji`: Removes emojis so TTS doesn't say "party pooper" when you meant 🎉
-- `filepath`: Simplifies file paths to just the filename or last directory (e.g., "/usr/local/bin/node" → "node")
+- `filepath`: Simplifies file paths to just the filename or last directory (e.g., "/usr/local/bin/node" → "node", includes slash pronunciation for clarity)
 - `markdown`: Cleans markdown formatting and adds periods to list items for natural TTS pauses
 - `pronunciation`: Improves pronunciation with customizable replacements (see below)
 - `code-stripper`: Removes code blocks
 - `role`: Filters messages by role (user/assistant/system)
 - Custom filters can be added via configuration
+
+**Note**: Filters now include enhanced pronunciation for special characters like `~` (tilde), `→` (right arrow pronounced as "to"), and improved handling of file paths.
 
 #### Configurable Pronunciation
 
@@ -143,6 +149,24 @@ filters: [
 
 See `examples/config-with-pronunciation.js` for a complete example.
 
+## UI Features
+
+### Message Management
+
+- **Favorites**: Click the heart icon to save important messages. Filter to show only favorites using the URL parameter `?favorites`
+- **Project Filtering**: Use the dropdown in the profile header to filter messages by project directory (CWD)
+- **Infinite Scroll**: Automatically loads older messages as you scroll up, with seamless pagination
+- **Expand/Collapse**: Click any message to see the full original and filtered text
+- **Instant Replay**: Click the play button on any message to hear it again
+
+### Navigation
+
+- **Dashboard**: Overview of all profiles with latest messages
+- **Profile Pages**: Dedicated pages for each profile (e.g., `/claudia`, `/opencode`)
+- **URL Parameters**: 
+  - `?favorites` - Show only favorite messages
+  - `?cwd=/path/to/project` - Filter by project directory
+
 ## API
 
 Agent TTS provides a REST API for integration:
@@ -152,7 +176,11 @@ Agent TTS provides a REST API for integration:
 - `POST /api/tts/resume` - Resume playback
 - `POST /api/tts/skip` - Skip current message
 - `GET /api/profiles` - List all profiles
-- `GET /api/logs` - Get message history
+- `GET /api/profiles/:id/cwds` - Get unique project directories for a profile
+- `GET /api/logs` - Get message history (supports `?profile=`, `?favorites=true`, `?cwd=`)
+- `POST /api/logs/:id/replay` - Replay a specific message
+- `POST /api/logs/:id/favorite` - Toggle favorite status
+- `GET /api/favorites/count` - Get favorites count
 - `GET /api/status` - Get system status
 
 ## WebSocket Events
