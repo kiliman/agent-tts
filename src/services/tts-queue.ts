@@ -3,10 +3,10 @@ import { TTSQueueEntry, ProfileConfig } from '../types/config.js';
 import { DatabaseManager } from './database.js';
 import { TTSServiceFactory } from './tts/factory.js';
 import { BaseTTSService } from './tts/base.js';
+import { AudioPlayer } from './audio-player.js';
 import { join } from 'path';
 import { homedir } from 'os';
 import { existsSync } from 'fs';
-import { spawn } from 'child_process';
 
 export interface QueuedMessage extends TTSQueueEntry {
   profileConfig: ProfileConfig;
@@ -19,10 +19,12 @@ export class TTSQueueProcessor extends EventEmitter {
   private isProcessing = false;
   private isMuted = false;
   private ttsServices: Map<string, BaseTTSService> = new Map();
+  private audioPlayer: AudioPlayer;
   
   constructor(database: DatabaseManager) {
     super();
     this.database = database;
+    this.audioPlayer = new AudioPlayer();
   }
   
   addToQueue(message: QueuedMessage): void {
@@ -85,44 +87,6 @@ export class TTSQueueProcessor extends EventEmitter {
     return join(audioDir, `${profile}-${epochTimestamp}.mp3`);
   }
   
-  private async playExistingAudio(filePath: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const platform = process.platform;
-      let command: string;
-      let args: string[];
-      
-      if (platform === 'darwin') {
-        command = 'afplay';
-        args = [filePath];
-      } else if (platform === 'linux') {
-        command = 'ffplay';
-        args = ['-nodisp', '-autoexit', filePath];
-      } else if (platform === 'win32') {
-        command = 'powershell';
-        args = ['-c', `(New-Object Media.SoundPlayer '${filePath}').PlaySync()`];
-      } else {
-        reject(new Error(`Unsupported platform: ${platform}`));
-        return;
-      }
-      
-      console.log(`[TTSQueue] Playing existing audio: ${filePath}`);
-      const audioProcess = spawn(command, args);
-      
-      audioProcess.on('close', (code) => {
-        if (code === 0) {
-          resolve();
-        } else if (code !== null) {
-          reject(new Error(`Audio playback failed with code ${code}`));
-        } else {
-          resolve(); // Process was killed
-        }
-      });
-      
-      audioProcess.on('error', (err) => {
-        reject(err);
-      });
-    });
-  }
   
   private async playMessage(message: QueuedMessage): Promise<void> {
     const startTime = Date.now();
@@ -148,19 +112,27 @@ export class TTSQueueProcessor extends EventEmitter {
       
       if (existsSync(audioFilePath)) {
         console.log(`[TTSQueue] Found existing audio file: ${audioFilePath}`);
-        await this.playExistingAudio(audioFilePath);
+        await this.audioPlayer.play(audioFilePath);
       } else {
         console.log(`[TTSQueue] No existing audio file, generating new TTS`);
+        
+        // Get the TTS service for this profile
         const ttsService = this.getTTSService(message.profileConfig);
         
         if (!ttsService.isAvailable()) {
           throw new Error('TTS service not available');
         }
         
-        await ttsService.tts(message.filteredText, { 
+        // Generate TTS and get the audio file path
+        const tempAudioPath = await ttsService.tts(message.filteredText, { 
           profile: message.profile, 
           timestamp: message.timestamp 
         });
+        
+        // Play the audio using our audio player
+        if (tempAudioPath) {
+          await this.audioPlayer.play(tempAudioPath, { tempFile: true });
+        }
       }
       
       const processingTime = Date.now() - startTime;
@@ -225,14 +197,7 @@ export class TTSQueueProcessor extends EventEmitter {
   
   stopCurrent(): void {
     // Stop the audio if playing
-    if (this.currentlyPlaying) {
-      try {
-        const ttsService = this.getTTSService(this.currentlyPlaying.profileConfig);
-        ttsService.stop();
-      } catch (err) {
-        console.error('[TTSQueue] Error stopping audio:', err);
-      }
-    }
+    this.audioPlayer.stop();
     
     this.queue = [];
     this.currentlyPlaying = null;
@@ -241,17 +206,10 @@ export class TTSQueueProcessor extends EventEmitter {
   
   pauseCurrent(): void {
     console.log('[TTSQueue] pauseCurrent called');
-    if (this.currentlyPlaying) {
+    if (this.audioPlayer.isPlaying()) {
       console.log('[TTSQueue] Stopping currently playing audio');
-      
-      // Get the TTS service and stop it
-      try {
-        const ttsService = this.getTTSService(this.currentlyPlaying.profileConfig);
-        ttsService.stop();
-        console.log('[TTSQueue] Audio stopped successfully');
-      } catch (err) {
-        console.error('[TTSQueue] Error stopping audio:', err);
-      }
+      this.audioPlayer.stop();
+      console.log('[TTSQueue] Audio stopped successfully');
       
       // Clear the current playing state and queue
       this.currentlyPlaying = null;
@@ -269,6 +227,9 @@ export class TTSQueueProcessor extends EventEmitter {
   }
   
   skipCurrent(): void {
+    // Stop current audio
+    this.audioPlayer.stop();
+    
     this.currentlyPlaying = null;
     this.isProcessing = false;
     this.processQueue();

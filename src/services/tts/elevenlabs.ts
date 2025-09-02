@@ -29,13 +29,10 @@ export class ElevenLabsTTSService extends BaseTTSService {
     }
   }
   
-  async tts(text: string, metadata?: { profile?: string; timestamp?: Date }): Promise<void> {
+  async tts(text: string, metadata?: { profile?: string; timestamp?: Date }): Promise<string> {
     if (!this.client) {
       throw new Error('ElevenLabs client not initialized. Please provide an API key.');
     }
-    
-    // Stop any currently playing audio
-    this.stop();
     
     console.log(`[ElevenLabs] Converting text to speech - Voice: ${this.voiceId}, Length: ${text.length} chars`);
     if (text.length > 100) {
@@ -61,15 +58,14 @@ export class ElevenLabsTTSService extends BaseTTSService {
       // Save to temp file
       const tempFile = join(tmpdir(), `tts-${Date.now()}.mp3`);
       await writeFile(tempFile, audioBuffer);
-      this.currentTempFile = tempFile;
       
       // Save a permanent copy if metadata provided
       if (metadata?.profile && metadata?.timestamp) {
         await this.saveAudioFile(tempFile, metadata.profile, metadata.timestamp);
       }
       
-      // Play using afplay (macOS) or other platform-specific player
-      await this.playAudio(tempFile, 'ElevenLabs');
+      // Return the temp file path for external playback
+      return tempFile;
     } catch (error: any) {
       // Extract useful error information without dumping entire request object
       let errorMessage = 'TTS request failed';

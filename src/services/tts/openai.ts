@@ -25,13 +25,10 @@ export class OpenAITTSService extends BaseTTSService {
     console.log(`[OpenAI] Initializing with base URL: ${this.baseUrl}, voice: ${this.voiceId}, model: ${this.model}`);
   }
   
-  async tts(text: string, metadata?: { profile?: string; timestamp?: Date }): Promise<void> {
+  async tts(text: string, metadata?: { profile?: string; timestamp?: Date }): Promise<string> {
     if (!this.apiKey) {
       throw new Error('OpenAI-compatible service requires an API key');
     }
-    
-    // Stop any currently playing audio
-    this.stop();
     
     console.log(`[OpenAI] Converting text to speech - Voice: ${this.voiceId}, Length: ${text.length} chars`);
     if (text.length > 100) {
@@ -67,15 +64,14 @@ export class OpenAITTSService extends BaseTTSService {
                        this.responseFormat === 'pcm' ? 'pcm' : 'mp3';
       const tempFile = join(tmpdir(), `tts-${Date.now()}.${extension}`);
       await writeFile(tempFile, Buffer.from(response.data));
-      this.currentTempFile = tempFile;
       
       // Save a permanent copy if metadata provided
       if (metadata?.profile && metadata?.timestamp) {
         await this.saveAudioFile(tempFile, metadata.profile, metadata.timestamp);
       }
       
-      // Play using afplay (macOS) or other platform-specific player
-      await this.playAudio(tempFile, 'OpenAI');
+      // Return the temp file path for external playback
+      return tempFile;
     } catch (error: any) {
       // Extract useful error information without dumping entire request object
       let errorMessage = 'TTS request failed';

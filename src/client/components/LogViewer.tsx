@@ -60,28 +60,44 @@ export function LogViewer({
   const autoScroll = showControls ? autoScrollLocal : autoScrollProp;
 
   // Detect when user scrolls near the top to load more
-  const handleScroll = useCallback(async () => {
+  const handleScroll = useCallback(() => {
     if (!listRef.current || !onLoadMore || !hasMore || loadingRef.current) return;
     
-    const { scrollTop } = listRef.current;
+    const { scrollTop, scrollHeight } = listRef.current;
     const threshold = 100; // Load more when within 100px of top
     
     if (scrollTop < threshold) {
       loadingRef.current = true;
       
       // Save current scroll position and height
-      const prevScrollHeight = listRef.current.scrollHeight;
+      const prevScrollHeight = scrollHeight;
       const prevScrollTop = scrollTop;
       
-      await onLoadMore();
-      
-      // After new items are added, restore scroll position
-      requestAnimationFrame(() => {
+      // Create a MutationObserver to detect when new items are added
+      const observer = new MutationObserver(() => {
         if (listRef.current) {
           const newScrollHeight = listRef.current.scrollHeight;
-          const heightDiff = newScrollHeight - prevScrollHeight;
-          listRef.current.scrollTop = prevScrollTop + heightDiff;
+          const newItemsHeight = newScrollHeight - prevScrollHeight;
+          
+          // Only adjust if height actually changed (new items were added)
+          if (newItemsHeight > 0) {
+            // Adjust scroll position by the height of new items added at the top
+            listRef.current.scrollTop = prevScrollTop + newItemsHeight;
+            observer.disconnect();
+            loadingRef.current = false;
+          }
         }
+      });
+      
+      // Start observing before loading
+      if (listRef.current) {
+        observer.observe(listRef.current, { childList: true, subtree: true });
+      }
+      
+      // Load more items
+      onLoadMore().catch((err) => {
+        console.error('Error loading more:', err);
+        observer.disconnect();
         loadingRef.current = false;
       });
     }
@@ -97,8 +113,17 @@ export function LogViewer({
   
   useEffect(() => {
     // Only auto-scroll when adding new messages at the bottom
-    if (autoScroll && listRef.current && !loadingRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
+    // Skip if we're currently loading more (pagination)
+    if (autoScroll && listRef.current) {
+      // Check if we're near the top (pagination scenario)
+      const isNearTop = listRef.current.scrollTop < 200;
+      if (isNearTop) {
+        return;
+      }
+      
+      if (!loadingRef.current) {
+        listRef.current.scrollTop = listRef.current.scrollHeight;
+      }
     }
   }, [logs.length, autoScroll]);
 

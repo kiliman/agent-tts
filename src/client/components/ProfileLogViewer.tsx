@@ -48,7 +48,17 @@ export function ProfileLogViewer({
     const handleLogAdded = (data: any) => {
       if (data.profile === profile) {
         console.log('New log entry for profile:', data);
-        loadLogs();
+        // Instead of reloading all logs, just prepend the new one
+        // Only if we're not in favorites mode, or if it's a favorite
+        if (!favoritesOnly || data.isFavorite) {
+          setLogs(prevLogs => {
+            // Check if this log already exists to avoid duplicates
+            if (prevLogs.some(log => log.id === data.id)) {
+              return prevLogs;
+            }
+            return [data, ...prevLogs];
+          });
+        }
       }
     };
     
@@ -84,7 +94,7 @@ export function ProfileLogViewer({
       wsClient.off('log-added', handleLogAdded);
       wsClient.off('status-changed', handleStatusChanged);
     };
-  }, [profile]);
+  }, [profile, favoritesOnly]);
 
   const loadLogs = async (reset: boolean = false) => {
     if (!profile) return;
@@ -101,8 +111,12 @@ export function ProfileLogViewer({
           setLogs(response.logs);
           setOffset(response.logs.length);
         } else {
-          // Prepend older messages to the beginning
-          setLogs(prevLogs => [...prevLogs, ...response.logs]);
+          // Prepend older messages to the beginning, deduplicating by ID
+          setLogs(prevLogs => {
+            const existingIds = new Set(prevLogs.map((log: any) => log.id));
+            const newLogs = response.logs.filter((log: any) => !existingIds.has(log.id));
+            return [...prevLogs, ...newLogs];
+          });
           setOffset(prevOffset => prevOffset + response.logs.length);
         }
         
