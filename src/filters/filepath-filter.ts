@@ -52,8 +52,16 @@ export class FilepathFilter extends BaseFilter {
     
     // Match standalone obvious paths (be more conservative here)
     // This handles paths that aren't in quotes/backticks but are clearly paths
-    const standalonePaths = /(?:^|\s)((?:~|\.{1,2})?[\\\/][\w.-]+(?:[\\\/][\w.-]+)+[\\\/]?)(?=\s|$)/g;
+    // Updated regex to better catch absolute paths like /Users/michael/Projects/oss/agent-tts
+    const standalonePaths = /(?:^|\s|,\s*)((?:\/[A-Za-z][\w.-]*|~|\.{1,2}|[A-Za-z]:)(?:[\\\/][\w.-]+)+[\\\/]?)(?=\s|,|$|\))/g;
     filteredContent = filteredContent.replace(standalonePaths, (match, path) => {
+      const simplified = this.simplifyPath(path);
+      return match.replace(path, simplified);
+    });
+    
+    // Also catch paths that start with tilde and are expanded
+    const tildeExpandedPaths = /(?:^|\s|,\s*)(~[\\\/][\w.-]+(?:[\\\/][\w.-]+)*[\\\/]?)(?=\s|,|$|\))/g;
+    filteredContent = filteredContent.replace(tildeExpandedPaths, (match, path) => {
       const simplified = this.simplifyPath(path);
       return match.replace(path, simplified);
     });
@@ -80,34 +88,36 @@ export class FilepathFilter extends BaseFilter {
     // Split by both forward and back slashes
     const segments = path.split(/[\\\/]/);
     
-    // Get the last meaningful segment
-    const lastSegment = segments[segments.length - 1];
+    // Filter out empty segments
+    const meaningfulSegments = segments.filter(s => s && s !== '.' && s !== '..');
     
-    // If the last segment is empty or just dots, get the second to last
-    if (!lastSegment || lastSegment === '.' || lastSegment === '..') {
-      const secondLast = segments[segments.length - 2];
-      if (secondLast) {
-        return secondLast;
-      }
-    }
-    
-    // If it's a hidden file/folder (starts with .) keep it
-    // If it's a file with extension, keep it
-    // If it's a directory name, keep it
-    if (lastSegment) {
-      // For very common directory names, we might want to include parent
-      if (['storage', 'share', 'local', 'bin', 'lib', 'src', 'dist'].includes(lastSegment.toLowerCase())) {
-        // Get parent directory for context
-        const parent = segments[segments.length - 2];
-        if (parent && parent !== '.' && parent !== '..') {
-          return `${parent}/${lastSegment}`;
-        }
-      }
+    // If path is very long (like /Users/michael/Projects/oss/agent-tts), just use the last segment
+    if (meaningfulSegments.length > 4) {
+      const lastSegment = meaningfulSegments[meaningfulSegments.length - 1];
+      // For project names, they're usually distinctive enough
       return lastSegment;
     }
     
-    // Fallback to just saying "filepath"
-    return 'filepath';
+    // Get the last meaningful segment
+    const lastSegment = meaningfulSegments[meaningfulSegments.length - 1];
+    
+    // If no meaningful segments, fallback
+    if (!lastSegment) {
+      return 'filepath';
+    }
+    
+    // For very common directory names, we might want to include parent
+    if (['storage', 'share', 'local', 'bin', 'lib', 'src', 'dist', 'oss'].includes(lastSegment.toLowerCase())) {
+      // Get parent directory for context
+      const parent = meaningfulSegments[meaningfulSegments.length - 2];
+      if (parent) {
+        // Replace slash with " slash " for better TTS pronunciation
+        return `${parent} slash ${lastSegment}`;
+      }
+    }
+    
+    // For most cases, just return the last segment (project name, filename, etc)
+    return lastSegment;
   }
   
   private looksLikePath(text: string): boolean {

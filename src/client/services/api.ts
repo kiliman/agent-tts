@@ -40,12 +40,18 @@ class ApiClient {
     const response = await axios.put(`${this.baseURL}/profiles/${profileId}`, { enabled });
     return response.data;
   }
+  
+  async getProfileCwds(profileId: string) {
+    const response = await axios.get(`${this.baseURL}/profiles/${profileId}/cwds`);
+    return response.data;
+  }
 
   // Logs
-  async getLogs(limit: number = 50, profile?: string, favoritesOnly: boolean = false, offset: number = 0) {
+  async getLogs(limit: number = 50, profile?: string, favoritesOnly: boolean = false, offset: number = 0, cwd?: string) {
     const params: any = { limit, offset };
     if (profile) params.profile = profile;
     if (favoritesOnly) params.favorites = 'true';
+    if (cwd) params.cwd = cwd;
     const response = await axios.get(`${this.baseURL}/logs`, { params });
     return response.data;
   }

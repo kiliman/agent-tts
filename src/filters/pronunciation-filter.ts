@@ -4,6 +4,9 @@ import { ParsedMessage } from "../types/config.js";
 export class PronunciationFilter extends BaseFilter {
   private replacements: Map<string, string>;
   
+  // Special characters that don't use word boundaries
+  private static readonly SPECIAL_CHARACTERS = ["~", "→", "@", "#", "$", "%", "^", "&", "*", "`", "\\"];
+  
   // Default replacements for common technical terms
   private static readonly DEFAULT_REPLACEMENTS = new Map([
     ["git", "ghit"],
@@ -58,6 +61,7 @@ export class PronunciationFilter extends BaseFilter {
     ["&", "and"],
     ["*", "asterisk"],
     ["vite", "veet"],
+    ["→", "to"],
   ]);
 
   constructor(customReplacements?: Record<string, string>) {
@@ -89,11 +93,11 @@ export class PronunciationFilter extends BaseFilter {
       // Escape special regex characters in the original string
       const escaped = original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       
-      // Special handling for non-word characters like ~
-      if (original === "~") {
-        // Replace all occurrences of ~ (standalone or in paths)
-        const tildeRegex = new RegExp(escaped, "g");
-        content = content.replace(tildeRegex, replacement);
+      // Check if this is a special character that shouldn't use word boundaries
+      if (PronunciationFilter.SPECIAL_CHARACTERS.includes(original)) {
+        // Replace all occurrences (standalone or in context)
+        const specialRegex = new RegExp(escaped, "g");
+        content = content.replace(specialRegex, ` ${replacement} `);
       } else {
         // Use word boundaries for regular words
         const regex = new RegExp(`\\b${escaped}\\b`, "gi");

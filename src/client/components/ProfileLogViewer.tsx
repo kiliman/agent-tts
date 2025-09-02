@@ -3,7 +3,7 @@ import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { LogViewer } from "./LogViewer";
 import { ToggleSwitch } from "./ToggleSwitch";
 import { apiClient, wsClient } from "../services/api";
-import { RefreshCw, Bot, AlertCircle, Heart, X } from "lucide-react";
+import { RefreshCw, Bot, AlertCircle, Heart, X, FolderOpen } from "lucide-react";
 import { getResourceUrl } from "../utils/url";
 
 interface ProfileLogViewerProps {
@@ -23,6 +23,7 @@ export function ProfileLogViewer({
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const favoritesOnly = searchParams.has("favorites");
+  const cwdFilter = searchParams.get("cwd") || undefined;
 
   const [logs, setLogs] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +33,9 @@ export function ProfileLogViewer({
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [offset, setOffset] = useState<number>(0);
+  const [availableCwds, setAvailableCwds] = useState<string[]>([]);
+  const [showCwdDropdown, setShowCwdDropdown] = useState<boolean>(false);
+  const cwdDropdownRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (profile) {
@@ -40,8 +44,9 @@ export function ProfileLogViewer({
       loadLogs(true);
       loadProfileInfo();
       loadFavoritesCount();
+      loadAvailableCwds();
     }
-  }, [profile, refreshTrigger, favoritesOnly]);
+  }, [profile, refreshTrigger, favoritesOnly, cwdFilter]);
 
   useEffect(() => {
     // WebSocket event handlers for real-time updates
@@ -91,6 +96,23 @@ export function ProfileLogViewer({
       wsClient.off("status-changed", handleStatusChanged);
     };
   }, [profile, favoritesOnly]);
+  
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (cwdDropdownRef.current && !cwdDropdownRef.current.contains(event.target as Node)) {
+        setShowCwdDropdown(false);
+      }
+    };
+    
+    if (showCwdDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showCwdDropdown]);
 
   const loadLogs = async (reset: boolean = false) => {
     if (!profile) return;
@@ -106,7 +128,8 @@ export function ProfileLogViewer({
         50,
         profile,
         favoritesOnly,
-        currentOffset
+        currentOffset,
+        cwdFilter
       );
 
       if (response.success && response.logs) {
@@ -214,6 +237,32 @@ export function ProfileLogViewer({
       console.error("Failed to toggle favorite:", err);
     }
   };
+  
+  const loadAvailableCwds = async () => {
+    if (!profile) return;
+    try {
+      const response = await apiClient.getProfileCwds(profile);
+      if (response.success && response.cwds) {
+        setAvailableCwds(response.cwds);
+      }
+    } catch (err) {
+      console.error("Failed to load available CWDs:", err);
+    }
+  };
+  
+  const handleCwdFilterChange = (cwd: string | undefined) => {
+    const params = new URLSearchParams(searchParams);
+    if (cwd) {
+      params.set("cwd", cwd);
+    } else {
+      params.delete("cwd");
+    }
+    if (favoritesOnly) {
+      params.set("favorites", "");
+    }
+    navigate(`/${profile}${params.toString() ? `?${params.toString()}` : ""}`);
+    setShowCwdDropdown(false);
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -265,19 +314,55 @@ export function ProfileLogViewer({
             </div>
 
             <div className="flex flex-col gap-2 items-end">
-              <button
-                type="button"
-                onClick={() => {
-                  setOffset(0);
-                  setHasMore(true);
-                  loadLogs(true);
-                  if (onRefresh) onRefresh();
-                }}
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors inline-flex items-center gap-1.5"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Refresh
-              </button>
+              <div className="flex gap-2">
+                <div className="relative" ref={cwdDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShowCwdDropdown(!showCwdDropdown)}
+                    className="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm font-medium transition-colors inline-flex items-center gap-1.5"
+                  >
+                    <FolderOpen className="w-4 h-4" />
+                    {cwdFilter ? "Filtered" : "All Projects"}
+                  </button>
+                  {showCwdDropdown && availableCwds.length > 0 && (
+                    <div className="absolute right-0 mt-1 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-h-60 overflow-y-auto z-50">
+                      <button
+                        onClick={() => handleCwdFilterChange(undefined)}
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                          !cwdFilter ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        All Projects
+                      </button>
+                      {availableCwds.map((cwd) => (
+                        <button
+                          key={cwd}
+                          onClick={() => handleCwdFilterChange(cwd)}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 font-mono truncate ${
+                            cwdFilter === cwd ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-gray-300"
+                          }`}
+                          title={cwd}
+                        >
+                          {cwd}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOffset(0);
+                    setHasMore(true);
+                    loadLogs(true);
+                    if (onRefresh) onRefresh();
+                  }}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors inline-flex items-center gap-1.5"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Refresh
+                </button>
+              </div>
               <ToggleSwitch
                 checked={autoScroll}
                 onChange={(checked) => {
@@ -311,6 +396,24 @@ export function ProfileLogViewer({
             title="Show all logs"
           >
             <X className="w-4 h-4 text-red-600 dark:text-red-400" />
+          </button>
+        </div>
+      )}
+      
+      {cwdFilter && !favoritesOnly && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 px-6 py-2 flex items-center justify-between border-b border-blue-200 dark:border-blue-800">
+          <div className="flex items-center gap-2">
+            <FolderOpen className="w-4 h-4 text-blue-500" />
+            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+              Filtered: <span className="font-mono">{cwdFilter}</span>
+            </span>
+          </div>
+          <button
+            onClick={() => handleCwdFilterChange(undefined)}
+            className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded transition-colors"
+            title="Clear filter"
+          >
+            <X className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           </button>
         </div>
       )}

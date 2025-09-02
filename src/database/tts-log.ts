@@ -69,8 +69,8 @@ export class TTSLogRepository {
     return rows;
   }
 
-  getEntriesByProfile(profile: string, limit: number = 50, offset: number = 0): TTSLogRecord[] {
-    const rows = this.db.prepare(`
+  getEntriesByProfile(profile: string, limit: number = 50, offset: number = 0, cwd?: string): TTSLogRecord[] {
+    let query = `
       SELECT 
         id,
         timestamp,
@@ -87,9 +87,19 @@ export class TTSLogRepository {
         created_at as createdAt
       FROM tts_queue
       WHERE profile = ?
-      ORDER BY timestamp DESC
-      LIMIT ? OFFSET ?
-    `).all(profile, limit, offset) as any[];
+    `;
+    
+    const params: any[] = [profile];
+    
+    if (cwd) {
+      query += ` AND cwd = ?`;
+      params.push(cwd);
+    }
+    
+    query += ` ORDER BY timestamp DESC LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+    
+    const rows = this.db.prepare(query).all(...params) as any[];
     
     return rows;
   }
@@ -121,12 +131,12 @@ export class TTSLogRepository {
     return this.getRecentEntries(limit, offset);
   }
 
-  getLogsByProfile(profile: string, limit: number = 50, offset: number = 0): TTSLogRecord[] {
-    return this.getEntriesByProfile(profile, limit, offset);
+  getLogsByProfile(profile: string, limit: number = 50, offset: number = 0, cwd?: string): TTSLogRecord[] {
+    return this.getEntriesByProfile(profile, limit, offset, cwd);
   }
   
-  getFavoritesByProfile(profile: string, limit: number = 50, offset: number = 0): TTSLogRecord[] {
-    const rows = this.db.prepare(`
+  getFavoritesByProfile(profile: string, limit: number = 50, offset: number = 0, cwd?: string): TTSLogRecord[] {
+    let query = `
       SELECT 
         id,
         timestamp,
@@ -143,9 +153,19 @@ export class TTSLogRepository {
         created_at as createdAt
       FROM tts_queue
       WHERE profile = ? AND is_favorite = 1
-      ORDER BY timestamp DESC
-      LIMIT ? OFFSET ?
-    `).all(profile, limit, offset) as any[];
+    `;
+    
+    const params: any[] = [profile];
+    
+    if (cwd) {
+      query += ` AND cwd = ?`;
+      params.push(cwd);
+    }
+    
+    query += ` ORDER BY timestamp DESC LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+    
+    const rows = this.db.prepare(query).all(...params) as any[];
     
     return rows;
   }
@@ -209,5 +229,16 @@ export class TTSLogRepository {
     `).run(cutoffTime);
     
     return result.changes;
+  }
+  
+  getUniqueCwdsByProfile(profile: string): string[] {
+    const rows = this.db.prepare(`
+      SELECT DISTINCT cwd
+      FROM tts_queue
+      WHERE profile = ? AND cwd IS NOT NULL
+      ORDER BY cwd
+    `).all(profile) as { cwd: string }[];
+    
+    return rows.map(row => row.cwd);
   }
 }

@@ -59,6 +59,17 @@ export function setupApiRoutes(app: Express, coordinator: AppCoordinator) {
       res.status(500).json({ success: false, error: (error as Error).message });
     }
   });
+  
+  // Get unique CWDs for a profile
+  app.get('/api/profiles/:id/cwds', async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const cwds = await coordinator.getUniqueCwds(id);
+      res.json({ success: true, cwds });
+    } catch (error) {
+      res.status(500).json({ success: false, error: (error as Error).message });
+    }
+  });
 
   // Logs
   app.get('/api/logs', async (req: Request, res: Response) => {
@@ -67,7 +78,8 @@ export function setupApiRoutes(app: Express, coordinator: AppCoordinator) {
       const offset = parseInt(req.query.offset as string) || 0;
       const profile = req.query.profile as string | undefined;
       const favoritesOnly = req.query.favorites === 'true';
-      const logs = await coordinator.getLogsWithAvatars(limit, profile, favoritesOnly, offset);
+      const cwd = req.query.cwd as string | undefined;
+      const logs = await coordinator.getLogsWithAvatars(limit, profile, favoritesOnly, offset, cwd);
       res.json({ success: true, logs, hasMore: logs.length === limit });
     } catch (error) {
       res.status(500).json({ success: false, error: (error as Error).message });

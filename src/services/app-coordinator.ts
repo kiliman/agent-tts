@@ -255,22 +255,34 @@ export class AppCoordinator extends EventEmitter {
     }
     return path;
   }
+  
+  private expandTildeToHome(path: string): string {
+    if (path.startsWith('~')) {
+      const home = homedir();
+      return path.replace('~', home);
+    }
+    return path;
+  }
 
   async getLogsWithAvatars(
     limit: number = 50,
     profileFilter?: string,
     favoritesOnly: boolean = false,
-    offset: number = 0
+    offset: number = 0,
+    cwdFilter?: string
   ): Promise<any[]> {
     let logs;
     
+    // Expand tilde to full path for database query
+    const expandedCwd = cwdFilter ? this.expandTildeToHome(cwdFilter) : undefined;
+    
     if (favoritesOnly) {
       logs = profileFilter
-        ? this.database.getTTSLog().getFavoritesByProfile(profileFilter, limit, offset)
+        ? this.database.getTTSLog().getFavoritesByProfile(profileFilter, limit, offset, expandedCwd)
         : this.database.getTTSLog().getAllFavorites(limit, offset);
     } else {
       logs = profileFilter
-        ? this.database.getTTSLog().getLogsByProfile(profileFilter, limit, offset)
+        ? this.database.getTTSLog().getLogsByProfile(profileFilter, limit, offset, expandedCwd)
         : this.database.getTTSLog().getRecentLogs(limit, offset);
     }
 
@@ -285,6 +297,12 @@ export class AppCoordinator extends EventEmitter {
         voiceName: profile?.ttsService?.voiceName,
       };
     });
+  }
+  
+  async getUniqueCwds(profileId: string): Promise<string[]> {
+    const cwds = this.database.getTTSLog().getUniqueCwdsByProfile(profileId);
+    // Replace home with tilde for display
+    return cwds.map(cwd => this.replaceHomeWithTilde(cwd) || cwd);
   }
 
   async getLatestLogsPerProfile(): Promise<any[]> {
