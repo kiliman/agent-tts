@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-09-02
+
+### ✨ Features
+- Add project directory (CWD) tracking to see which project each TTS message came from
+- Add CWD filtering dropdown to filter messages by project directory
+- Add infinite scroll with virtual pagination for better performance with large log lists
+- Add favorites system to save and filter important TTS messages
+- Add audio archiving to save and reuse TTS audio files
+- Add markdown filter with improved list handling for better TTS output
+- Add filepath filter to simplify long file paths for clearer TTS
+- Add URL filter to replace URLs with "URL" in TTS output
+- Add configurable pronunciation replacements for technical terms
+- Improve tilde (~) pronunciation in file paths
+- Add right arrow (→) pronunciation as "to"
+- Add slash pronunciation in file paths for clarity
+
+### 🐛 Fixes
+- Fix tilde pronunciation by treating it as special character
+- Use original timestamp when replaying log entries
+- Handle blank lines between headings and lists in markdown filter
+- Improve markdown filter to keep numbered list numbers and add pauses
+- Properly expand tilde to full path when filtering by CWD
+
+### ♻️ Refactoring
+- Create AudioPlayer service for better separation of concerns
+- Remove Electron remnants and consolidate TTS services
+- Refactor special character handling in pronunciation filter to use array
+- Simplify log entry expand/collapse interaction in UI
+
+### 📝 Documentation
+- Update CLAUDE.md to reflect current project state
+
+### Explanation
+**Minor version bump (0.3.1 → 0.4.0)** because this release adds significant new features including CWD tracking/filtering, favorites system, audio archiving, infinite scroll, and multiple new text filters. All changes are backwards compatible - existing configurations and databases will continue to work with automatic migration for the new CWD field.
+
 ## [0.3.1] - 2025-09-01
 
 ### ✨ Features
