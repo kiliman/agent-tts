@@ -91,9 +91,9 @@ export class PronunciationFilter extends BaseFilter {
       
       // Special handling for non-word characters like ~
       if (original === "~") {
-        // Replace ~ when it appears at the start of a path
-        const tildeRegex = new RegExp(`${escaped}/`, "g");
-        content = content.replace(tildeRegex, `${replacement} slash `);
+        // Replace all occurrences of ~ (standalone or in paths)
+        const tildeRegex = new RegExp(escaped, "g");
+        content = content.replace(tildeRegex, replacement);
       } else {
         // Use word boundaries for regular words
         const regex = new RegExp(`\\b${escaped}\\b`, "gi");
