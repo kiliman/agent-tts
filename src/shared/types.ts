@@ -21,6 +21,7 @@ export interface TTSLogEntry {
   ttsStatus: number;
   ttsMessage: string;
   elapsed: number;
+  cwd?: string; // current working directory
 }
 
 export type FilterFunction = (text: string) => string;

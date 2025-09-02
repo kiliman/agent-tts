@@ -73,6 +73,19 @@ export class DatabaseManager {
       `);
       console.log('[Database] Added is_favorite column to tts_queue table');
     }
+    
+    // Migration: Add cwd column if it doesn't exist
+    const hasCwdColumn = columns.some((col: any) => col.name === 'cwd');
+    
+    if (!hasCwdColumn) {
+      this.db.exec(`
+        ALTER TABLE tts_queue 
+        ADD COLUMN cwd TEXT;
+        
+        CREATE INDEX IF NOT EXISTS idx_tts_queue_cwd ON tts_queue(cwd);
+      `);
+      console.log('[Database] Added cwd column to tts_queue table');
+    }
   }
 
   getFileState(filepath: string): FileState | null {
@@ -108,9 +121,9 @@ export class DatabaseManager {
     const result = this.db.prepare(
       `INSERT INTO tts_queue (
         timestamp, filename, profile, original_text, filtered_text,
-        state, api_response_status, api_response_message, processing_time
+        state, api_response_status, api_response_message, processing_time, cwd
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       entry.timestamp.getTime(),
       entry.filename,
@@ -120,7 +133,8 @@ export class DatabaseManager {
       entry.state,
       entry.apiResponseStatus || null,
       entry.apiResponseMessage || null,
-      entry.processingTime || null
+      entry.processingTime || null,
+      entry.cwd || null
     );
     
     return result.lastInsertRowid as number;
@@ -143,7 +157,9 @@ export class DatabaseManager {
       state: row.state,
       apiResponseStatus: row.api_response_status,
       apiResponseMessage: row.api_response_message,
-      processingTime: row.processing_time
+      processingTime: row.processing_time,
+      isFavorite: row.is_favorite,
+      cwd: row.cwd
     };
   }
 

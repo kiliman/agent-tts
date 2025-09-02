@@ -7,6 +7,20 @@ export class ClaudeCodeParser extends BaseParser {
     const messages: ParsedMessage[] = [];
     const lines = content.split('\n').filter(line => line.trim());
     
+    // Try to find cwd from the first message that has it
+    let cwd: string | undefined;
+    for (const line of lines) {
+      try {
+        const data = JSON.parse(line);
+        if (data.cwd) {
+          cwd = data.cwd;
+          break;
+        }
+      } catch {
+        // Skip invalid JSON
+      }
+    }
+    
     for (const line of lines) {
       try {
         const data = JSON.parse(line);
@@ -30,7 +44,8 @@ export class ClaudeCodeParser extends BaseParser {
         messages.push({
           role: 'assistant',
           content: text,
-          timestamp
+          timestamp,
+          cwd: data.cwd || cwd // Use message-specific cwd if available, otherwise use the file-level cwd
         });
       } catch (error) {
         // Skip invalid JSON lines

@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { LogViewer } from './LogViewer';
-import { ToggleSwitch } from './ToggleSwitch';
-import { apiClient, wsClient } from '../services/api';
-import { RefreshCw, Bot, AlertCircle, Heart, X } from 'lucide-react';
-import { getResourceUrl } from '../utils/url';
+import React, { useState, useEffect } from "react";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { LogViewer } from "./LogViewer";
+import { ToggleSwitch } from "./ToggleSwitch";
+import { apiClient, wsClient } from "../services/api";
+import { RefreshCw, Bot, AlertCircle, Heart, X } from "lucide-react";
+import { getResourceUrl } from "../utils/url";
 
 interface ProfileLogViewerProps {
   refreshTrigger?: number;
@@ -13,17 +13,17 @@ interface ProfileLogViewerProps {
   onAutoScrollChange?: (value: boolean) => void;
 }
 
-export function ProfileLogViewer({ 
-  refreshTrigger = 0, 
+export function ProfileLogViewer({
+  refreshTrigger = 0,
   autoScroll = true,
   onRefresh,
-  onAutoScrollChange
+  onAutoScrollChange,
 }: ProfileLogViewerProps) {
   const { profile } = useParams<{ profile: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const favoritesOnly = searchParams.has('favorites');
-  
+  const favoritesOnly = searchParams.has("favorites");
+
   const [logs, setLogs] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [playingId, setPlayingId] = useState<number | null>(null);
@@ -47,13 +47,13 @@ export function ProfileLogViewer({
     // WebSocket event handlers for real-time updates
     const handleLogAdded = (data: any) => {
       if (data.profile === profile) {
-        console.log('New log entry for profile:', data);
+        console.log("New log entry for profile:", data);
         // Instead of reloading all logs, just prepend the new one
         // Only if we're not in favorites mode, or if it's a favorite
         if (!favoritesOnly || data.isFavorite) {
-          setLogs(prevLogs => {
+          setLogs((prevLogs) => {
             // Check if this log already exists to avoid duplicates
-            if (prevLogs.some(log => log.id === data.id)) {
+            if (prevLogs.some((log) => log.id === data.id)) {
               return prevLogs;
             }
             return [data, ...prevLogs];
@@ -61,77 +61,88 @@ export function ProfileLogViewer({
         }
       }
     };
-    
+
     const handleStatusChanged = (data: any) => {
-      console.log('Status changed:', data);
+      console.log("Status changed:", data);
       if (data.playing && data.playingId) {
         setPlayingId(data.playingId);
         // Update the log entry status to 'playing' (in case it was queued)
-        setLogs(prevLogs => 
-          prevLogs.map(log => 
-            log.id === data.playingId 
-              ? { ...log, status: 'playing' }
-              : log
+        setLogs((prevLogs) =>
+          prevLogs.map((log) =>
+            log.id === data.playingId ? { ...log, status: "playing" } : log
           )
         );
       } else if (!data.playing && data.playedId) {
         setPlayingId(null);
         // Update the log entry status to 'played'
-        setLogs(prevLogs => 
-          prevLogs.map(log => 
-            log.id === data.playedId 
-              ? { ...log, status: 'played' }
-              : log
+        setLogs((prevLogs) =>
+          prevLogs.map((log) =>
+            log.id === data.playedId ? { ...log, status: "played" } : log
           )
         );
       }
     };
-    
-    wsClient.on('log-added', handleLogAdded);
-    wsClient.on('status-changed', handleStatusChanged);
-    
+
+    wsClient.on("log-added", handleLogAdded);
+    wsClient.on("status-changed", handleStatusChanged);
+
     return () => {
-      wsClient.off('log-added', handleLogAdded);
-      wsClient.off('status-changed', handleStatusChanged);
+      wsClient.off("log-added", handleLogAdded);
+      wsClient.off("status-changed", handleStatusChanged);
     };
   }, [profile, favoritesOnly]);
 
   const loadLogs = async (reset: boolean = false) => {
     if (!profile) return;
-    
+
     try {
       const currentOffset = reset ? 0 : offset;
-      console.log(`Loading ${favoritesOnly ? 'favorite' : 'all'} logs for profile: ${profile}, offset: ${currentOffset}`);
-      const response = await apiClient.getLogs(50, profile, favoritesOnly, currentOffset);
-      
+      console.log(
+        `Loading ${
+          favoritesOnly ? "favorite" : "all"
+        } logs for profile: ${profile}, offset: ${currentOffset}`
+      );
+      const response = await apiClient.getLogs(
+        50,
+        profile,
+        favoritesOnly,
+        currentOffset
+      );
+
       if (response.success && response.logs) {
-        console.log(`Fetched ${response.logs.length} ${favoritesOnly ? 'favorite' : ''} logs for ${profile}`);
-        
+        console.log(
+          `Fetched ${response.logs.length} ${
+            favoritesOnly ? "favorite" : ""
+          } logs for ${profile}`
+        );
+
         if (reset) {
           setLogs(response.logs);
           setOffset(response.logs.length);
         } else {
           // Prepend older messages to the beginning, deduplicating by ID
-          setLogs(prevLogs => {
+          setLogs((prevLogs) => {
             const existingIds = new Set(prevLogs.map((log: any) => log.id));
-            const newLogs = response.logs.filter((log: any) => !existingIds.has(log.id));
+            const newLogs = response.logs.filter(
+              (log: any) => !existingIds.has(log.id)
+            );
             return [...prevLogs, ...newLogs];
           });
-          setOffset(prevOffset => prevOffset + response.logs.length);
+          setOffset((prevOffset) => prevOffset + response.logs.length);
         }
-        
+
         setHasMore(response.hasMore || false);
       }
     } catch (err) {
-      console.error('Failed to load logs:', err);
-      setError('Failed to load logs');
+      console.error("Failed to load logs:", err);
+      setError("Failed to load logs");
       setTimeout(() => setError(null), 3000);
     }
   };
-  
+
   const loadMoreLogs = async () => {
     if (isLoadingMore || !hasMore) return;
-    
+
     setIsLoadingMore(true);
     await loadLogs(false);
     setIsLoadingMore(false);
@@ -145,7 +156,7 @@ export function ProfileLogViewer({
         setProfileInfo(info);
       }
     } catch (err) {
-      console.error('Failed to load profile info:', err);
+      console.error("Failed to load profile info:", err);
     }
   };
 
@@ -153,17 +164,17 @@ export function ProfileLogViewer({
     try {
       await apiClient.replayLog(entryId);
     } catch (err) {
-      console.error('Failed to replay log:', err);
+      console.error("Failed to replay log:", err);
     }
   };
 
   const handlePausePlayback = async () => {
-    console.log('[ProfileLogViewer] handlePausePlayback called');
+    console.log("[ProfileLogViewer] handlePausePlayback called");
     try {
       const response = await apiClient.pausePlayback();
-      console.log('[ProfileLogViewer] Pause response:', response);
+      console.log("[ProfileLogViewer] Pause response:", response);
     } catch (err) {
-      console.error('[ProfileLogViewer] Failed to pause playback:', err);
+      console.error("[ProfileLogViewer] Failed to pause playback:", err);
     }
   };
 
@@ -171,10 +182,10 @@ export function ProfileLogViewer({
     try {
       await apiClient.stopPlayback();
     } catch (err) {
-      console.error('Failed to stop playback:', err);
+      console.error("Failed to stop playback:", err);
     }
   };
-  
+
   const loadFavoritesCount = async () => {
     try {
       const response = await apiClient.getFavoritesCount(profile);
@@ -182,27 +193,25 @@ export function ProfileLogViewer({
         setFavoritesCount(response.count);
       }
     } catch (err) {
-      console.error('Failed to load favorites count:', err);
+      console.error("Failed to load favorites count:", err);
     }
   };
-  
+
   const handleToggleFavorite = async (id: number) => {
     try {
       const response = await apiClient.toggleFavorite(id);
       if (response.success) {
         // Update the log entry
-        setLogs(prevLogs => 
-          prevLogs.map(log => 
-            log.id === id 
-              ? { ...log, isFavorite: response.isFavorite }
-              : log
+        setLogs((prevLogs) =>
+          prevLogs.map((log) =>
+            log.id === id ? { ...log, isFavorite: response.isFavorite } : log
           )
         );
         // Reload favorites count
         loadFavoritesCount();
       }
     } catch (err) {
-      console.error('Failed to toggle favorite:', err);
+      console.error("Failed to toggle favorite:", err);
     }
   };
 
@@ -212,9 +221,11 @@ export function ProfileLogViewer({
         <div className="px-6 py-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              {profileInfo.profileUrl || profileInfo.avatarUrl ? (
-                <img 
-                  src={getResourceUrl(profileInfo.profileUrl || profileInfo.avatarUrl)} 
+              {profileInfo.avatarUrl || profileInfo.profileUrl ? (
+                <img
+                  src={getResourceUrl(
+                    profileInfo.avatarUrl || profileInfo.profileUrl
+                  )}
                   alt={profileInfo.name}
                   className="h-20 w-20 rounded-lg object-cover"
                 />
@@ -223,7 +234,7 @@ export function ProfileLogViewer({
                   <Bot className="w-10 h-10 text-gray-600 dark:text-gray-400" />
                 </div>
               )}
-              
+
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                   {profileInfo.name || profile}
@@ -246,13 +257,13 @@ export function ProfileLogViewer({
                   >
                     <Heart className="w-4 h-4 fill-red-500 text-red-500" />
                     <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {favoritesCount} favorite{favoritesCount !== 1 ? 's' : ''}
+                      {favoritesCount} favorite{favoritesCount !== 1 ? "s" : ""}
                     </span>
                   </button>
                 )}
               </div>
             </div>
-            
+
             <div className="flex flex-col gap-2 items-end">
               <button
                 type="button"
@@ -278,19 +289,21 @@ export function ProfileLogViewer({
           </div>
         </div>
       )}
-      
+
       {error && (
         <div className="bg-red-500 text-white px-6 py-3 flex items-center gap-2">
           <AlertCircle className="w-5 h-5" />
           <span>{error}</span>
         </div>
       )}
-      
+
       {favoritesOnly && (
         <div className="bg-red-50 dark:bg-red-900/20 px-6 py-2 flex items-center justify-between border-b border-red-200 dark:border-red-800">
           <div className="flex items-center gap-2">
             <Heart className="w-4 h-4 fill-red-500 text-red-500" />
-            <span className="text-sm font-medium text-red-700 dark:text-red-300">Showing favorites only</span>
+            <span className="text-sm font-medium text-red-700 dark:text-red-300">
+              Showing favorites only
+            </span>
           </div>
           <button
             onClick={() => navigate(`/${profile}`)}
@@ -301,10 +314,10 @@ export function ProfileLogViewer({
           </button>
         </div>
       )}
-      
+
       <div className="flex-1 overflow-hidden">
-        <LogViewer 
-          logs={logs} 
+        <LogViewer
+          logs={logs}
           onPlayEntry={handlePlayEntry}
           onPause={handlePausePlayback}
           onStop={handleStopPlayback}

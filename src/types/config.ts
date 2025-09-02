@@ -18,6 +18,7 @@ export interface ParsedMessage {
   role: "user" | "assistant" | "system";
   content: string;
   timestamp?: Date;
+  cwd?: string;
 }
 
 export interface FilterConfig {
@@ -77,4 +78,5 @@ export interface TTSQueueEntry {
   apiResponseMessage?: string;
   processingTime?: number;
   isFavorite?: boolean;
+  cwd?: string;
 }

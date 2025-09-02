@@ -58,7 +58,8 @@ export class MessageProcessor extends EventEmitter {
           profile: profile.id,
           originalText: message.content,
           filteredText: filteredMessage.content,
-          state: 'queued'
+          state: 'queued',
+          cwd: message.cwd
         };
 
         const entryId = await this.database.addTTSQueueEntry(entry);

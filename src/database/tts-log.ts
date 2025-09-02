@@ -18,9 +18,9 @@ export class TTSLogRepository {
     const result = this.db.prepare(`
       INSERT INTO tts_queue (
         timestamp, filename, profile, original_text, filtered_text,
-        state, api_response_status, api_response_message, processing_time
+        state, api_response_status, api_response_message, processing_time, cwd
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       entry.timestamp,
       entry.filePath,
@@ -30,7 +30,8 @@ export class TTSLogRepository {
       entry.status,
       entry.ttsStatus,
       entry.ttsMessage,
-      entry.elapsed
+      entry.elapsed,
+      entry.cwd || null
     );
     
     return result.lastInsertRowid as number;
@@ -58,6 +59,7 @@ export class TTSLogRepository {
         api_response_message as ttsMessage,
         processing_time as elapsed,
         is_favorite as isFavorite,
+        cwd,
         created_at as createdAt
       FROM tts_queue
       ORDER BY timestamp DESC
@@ -81,6 +83,7 @@ export class TTSLogRepository {
         api_response_message as ttsMessage,
         processing_time as elapsed,
         is_favorite as isFavorite,
+        cwd,
         created_at as createdAt
       FROM tts_queue
       WHERE profile = ?
@@ -105,6 +108,7 @@ export class TTSLogRepository {
         api_response_message as ttsMessage,
         processing_time as elapsed,
         is_favorite as isFavorite,
+        cwd,
         created_at as createdAt
       FROM tts_queue
       WHERE id = ?
@@ -135,6 +139,7 @@ export class TTSLogRepository {
         api_response_message as ttsMessage,
         processing_time as elapsed,
         is_favorite as isFavorite,
+        cwd,
         created_at as createdAt
       FROM tts_queue
       WHERE profile = ? AND is_favorite = 1
@@ -159,6 +164,7 @@ export class TTSLogRepository {
         api_response_message as ttsMessage,
         processing_time as elapsed,
         is_favorite as isFavorite,
+        cwd,
         created_at as createdAt
       FROM tts_queue
       WHERE is_favorite = 1
@@ -182,6 +188,8 @@ export class TTSLogRepository {
         api_response_status as ttsStatus,
         api_response_message as ttsMessage,
         processing_time as elapsed,
+        is_favorite as isFavorite,
+        cwd,
         created_at as createdAt
       FROM tts_queue
       WHERE state = ?

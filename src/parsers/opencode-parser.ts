@@ -31,14 +31,18 @@ export class OpenCodeParser extends BaseParser {
               const messageContent = fs.readFileSync(messagePath, 'utf-8');
               const messageData = JSON.parse(messageContent);
               
+              // Extract cwd from the message file
+              const cwd = messageData.path?.cwd;
+              
               // Only process assistant messages
               if (messageData.role === 'assistant') {
                 messages.push({
                   role: "assistant",
                   content: partMessage.text,
                   timestamp: partMessage.time?.start ? new Date(partMessage.time.start) : new Date(),
+                  cwd: cwd
                 });
-                console.log(`[OpenCodeParser] Processing assistant message: ${partMessage.text.substring(0, 50)}...`);
+                console.log(`[OpenCodeParser] Processing assistant message with cwd: ${cwd}`);
               } else {
                 console.log(`[OpenCodeParser] Skipping ${messageData.role} message`);
               }

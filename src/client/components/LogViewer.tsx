@@ -20,6 +20,7 @@ interface LogEntry {
   avatarUrl?: string;
   voiceName?: string;
   isFavorite?: boolean;
+  cwd?: string;
 }
 
 interface LogViewerProps {
@@ -289,6 +290,14 @@ export function LogViewer({
                     </strong>
                     <span className="text-sm">{log.filePath}</span>
                   </div>
+                  {log.cwd && (
+                    <div className="mt-3">
+                      <strong className="block mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase">
+                        Project Directory:
+                      </strong>
+                      <span className="text-sm font-mono">{log.cwd}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
