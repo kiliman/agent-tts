@@ -11,6 +11,7 @@ import { ConfigLoader } from '../config/loader.js';
 import { AppCoordinator } from '../services/app-coordinator.js';
 import { setupApiRoutes } from './api/index.js';
 import { setupWebSocket } from './websocket.js';
+import { replaceConsoleWithLogger } from '../services/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,6 +24,9 @@ let appCoordinator: AppCoordinator | null = null;
 
 async function startServer() {
   try {
+    // Set up logging to file
+    replaceConsoleWithLogger();
+    
     // Initialize database
     console.log('Initializing database...');
     initializeDatabase();

@@ -19,6 +19,7 @@ export class FileMonitor extends EventEmitter {
   private changeQueue: FileChange[] = [];
   private isProcessing = false;
   private isInitialScanComplete = false;
+  private serviceStartTime = Date.now();
 
   constructor(database: DatabaseManager) {
     super();
@@ -47,11 +48,11 @@ export class FileMonitor extends EventEmitter {
       });
 
       // Create a single watcher for all paths in this profile
-      // For 'new' mode parsers (like OpenCode), ignore existing files
+      // For 'new' mode parsers (like OpenCode), we need to check file age
       // For 'append' mode parsers (like Claude Code), process existing files
       const watcher = watch(expandedPaths, {
         persistent: true,
-        ignoreInitial: logMode === 'new', // Skip initial files for 'new' mode
+        ignoreInitial: false, // Don't ignore initial files - we'll check age instead
         awaitWriteFinish: {
           stabilityThreshold: 500,
           pollInterval: 100
@@ -67,31 +68,39 @@ export class FileMonitor extends EventEmitter {
       watcher.on('add', async (path) => {
         console.log(`[FileMonitor] File added: ${path}`);
         
-        // For 'new' mode parsers, this event only fires for files created after startup
-        // For 'append' mode parsers, this handles both existing and new files
+        // For 'new' mode parsers, only process files created after service started
+        // For 'append' mode parsers, handle as before
         
         if (logMode === 'new') {
-          // For 'new' mode (OpenCode), only process truly new files
-          // Since ignoreInitial is true, this only fires for new files after startup
-          console.log(`[FileMonitor] New file detected (${logMode} mode), processing entire content`);
-          
           const stats = statSync(path);
-          if (stats.size > 0) {
-            // Read and process the entire file
-            const content = readFileSync(path, 'utf-8');
+          const fileCreatedAt = stats.birthtimeMs;
+          const isNewFile = fileCreatedAt > this.serviceStartTime;
+          
+          console.log(`[FileMonitor] File created: ${new Date(fileCreatedAt).toISOString()}, service started: ${new Date(this.serviceStartTime).toISOString()}, isNew: ${isNewFile}`);
+          
+          // Only process files created after the service started
+          if (isNewFile) {
+            console.log(`[FileMonitor] Processing new file (${logMode} mode), entire content`);
             
-            if (content.trim()) {
-              const change: FileChange = {
-                filepath: path,
-                profile,
-                content,
-                offset: 0
-              };
+            if (stats.size > 0) {
+              // Read and process the entire file
+              const content = readFileSync(path, 'utf-8');
               
-              this.changeQueue.push(change);
-              console.log(`[FileMonitor] Queued new file with ${content.length} chars`);
-              this.processQueue();
+              if (content.trim()) {
+                const change: FileChange = {
+                  filepath: path,
+                  profile,
+                  content,
+                  offset: 0
+                };
+                
+                this.changeQueue.push(change);
+                console.log(`[FileMonitor] Queued new file with ${content.length} chars`);
+                this.processQueue();
+              }
             }
+          } else {
+            console.log(`[FileMonitor] Skipping file created before service started`);
           }
           
           // Don't save file state for 'new' mode - each file is independent

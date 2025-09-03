@@ -17,10 +17,10 @@ export class OpenCodeParser extends BaseParser {
         const messageId = partMessage.messageID;
         
         if (sessionId && messageId) {
-          // Construct path to the message file
+          // Construct path to the message file (new structure)
           const messagePath = path.join(
             process.env.HOME || '',
-            '.local/share/opencode/project/global/storage/session/message',
+            '.local/share/opencode/storage/message',
             sessionId,
             `${messageId}.json`
           );
