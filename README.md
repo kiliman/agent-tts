@@ -37,14 +37,23 @@ export default {
     {
       id: "claudia",
       name: "Claudia",
+      model: "Grok Code Fast 1",
+      modelIconUrl: "/images/grok.png",
       enabled: true,
       watchPaths: ["~/.local/share/opencode/project/global/storage/session/message/**"],
-      parser: { type: "opencode" },
+      parser: { 
+        type: "opencode",
+        name: "OpenCode",
+        iconUrl: "/images/opencode.png"
+      },
       filters: [],
       ttsService: {
         type: "kokoro",
         baseUrl: "http://localhost:8880/v1", // Your Kokoro instance
         voiceId: "af_bella", // Available: af_bella, am_michael, bf_emma, bm_george, etc.
+        voiceName: "Claudia", // Display name in UI
+        avatarUrl: "/images/claudia-avatar.png", // Avatar image
+        profileUrl: "/images/claudia-profile.png", // Profile background image
         options: {
           speed: 1.0,
           responseFormat: "mp3"
@@ -63,15 +72,24 @@ export default {
     {
       id: "claudia",
       name: "Claudia",
+      model: "Claude Sonnet",
+      modelIconUrl: "/images/claude.png",
       enabled: true,
-      watchPaths: ["~/.local/share/opencode/project/global/storage/session/message/**"],
-      parser: { type: "opencode" },
+      watchPaths: ["~/.claude/projects/**"],
+      parser: { 
+        type: "claude-code",
+        name: "Claude Code",
+        iconUrl: "/images/claude-code.png"
+      },
       filters: [],
       ttsService: {
         type: "elevenlabs",
         apiKey: "YOUR_ELEVENLABS_API_KEY",
         voiceId: "YOUR_VOICE_ID",
         model: "eleven_turbo_v2_5",
+        voiceName: "Claudia", // Display name in UI
+        avatarUrl: "/images/claudia-avatar.png", // Avatar image
+        profileUrl: "/images/claudia-profile.png", // Profile background image
         options: {
           stability: 0.5,
           similarityBoost: 0.75

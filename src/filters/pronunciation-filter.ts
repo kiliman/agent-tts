@@ -3,10 +3,22 @@ import { ParsedMessage } from "../types/config.js";
 
 export class PronunciationFilter extends BaseFilter {
   private replacements: Map<string, string>;
-  
+
   // Special characters that don't use word boundaries
-  private static readonly SPECIAL_CHARACTERS = ["~", "→", "@", "#", "$", "%", "^", "&", "*", "`", "\\"];
-  
+  private static readonly SPECIAL_CHARACTERS = [
+    "~",
+    "→",
+    "@",
+    "#",
+    "$",
+    "%",
+    "^",
+    "&",
+    "*",
+    "`",
+    "\\",
+  ];
+
   // Default replacements for common technical terms
   private static readonly DEFAULT_REPLACEMENTS = new Map([
     ["git", "ghit"],
@@ -66,10 +78,10 @@ export class PronunciationFilter extends BaseFilter {
 
   constructor(customReplacements?: Record<string, string>) {
     super("pronunciation", true);
-    
+
     // Start with default replacements
     this.replacements = new Map(PronunciationFilter.DEFAULT_REPLACEMENTS);
-    
+
     // Add/override with custom replacements if provided
     if (customReplacements) {
       for (const [key, value] of Object.entries(customReplacements)) {
@@ -92,7 +104,7 @@ export class PronunciationFilter extends BaseFilter {
     for (const [original, replacement] of this.replacements) {
       // Escape special regex characters in the original string
       const escaped = original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      
+
       // Check if this is a special character that shouldn't use word boundaries
       if (PronunciationFilter.SPECIAL_CHARACTERS.includes(original)) {
         // Replace all occurrences (standalone or in context)

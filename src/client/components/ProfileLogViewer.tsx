@@ -305,30 +305,48 @@ export function ProfileLogViewer({
               )}
 
               <div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  {profileInfo.name || profile}
-                </h2>
-                {profileInfo.voiceName && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Voice: {profileInfo.voiceName}
-                  </p>
-                )}
-                {favoritesCount > 0 && (
-                  <button
-                    onClick={() => {
-                      if (favoritesOnly) {
-                        navigate(`/${profile}`);
-                      } else {
-                        navigate(`/${profile}?favorites`);
-                      }
-                    }}
-                    className="flex items-center gap-1.5 mt-2 hover:opacity-80 transition-opacity"
-                  >
-                    <Heart className="w-4 h-4 fill-red-500 text-red-500" />
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {favoritesCount} favorite{favoritesCount !== 1 ? "s" : ""}
-                    </span>
-                  </button>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    {profileInfo.voiceName || profileInfo.name || profile}
+                  </h2>
+                  {favoritesCount > 0 && (
+                    <button
+                      onClick={() => {
+                        if (favoritesOnly) {
+                          navigate(`/${profile}`);
+                        } else {
+                          navigate(`/${profile}?favorites`);
+                        }
+                      }}
+                      className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+                    >
+                      <Heart className="w-4 h-4 fill-red-500 text-red-500" />
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        {favoritesCount} favorite{favoritesCount !== 1 ? "s" : ""}
+                      </span>
+                    </button>
+                  )}
+                </div>
+                {(profileInfo.parserName || profileInfo.model) && (
+                  <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {profileInfo.parserIconUrl && (
+                      <img
+                        src={getResourceUrl(profileInfo.parserIconUrl)}
+                        alt={profileInfo.parserName}
+                        className="w-4 h-4"
+                      />
+                    )}
+                    {profileInfo.parserName && <span>{profileInfo.parserName}</span>}
+                    {profileInfo.parserName && profileInfo.model && <span className="text-gray-400">•</span>}
+                    {profileInfo.modelIconUrl && (
+                      <img
+                        src={getResourceUrl(profileInfo.modelIconUrl)}
+                        alt={profileInfo.model}
+                        className="w-4 h-4"
+                      />
+                    )}
+                    {profileInfo.model && <span>{profileInfo.model}</span>}
+                  </div>
                 )}
               </div>
             </div>

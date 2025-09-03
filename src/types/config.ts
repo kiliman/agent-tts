@@ -3,6 +3,8 @@ export interface ProfileConfig {
   name: string;
   icon?: string;
   enabled?: boolean;
+  model?: string; // Model name (e.g., "Claude Sonnet", "Grok Code Fast 1")
+  modelIconUrl?: string; // URL to model icon (e.g., /images/claude.png)
   watchPaths: string[];
   parser: ParserConfig;
   filters: FilterConfig[];
@@ -11,6 +13,8 @@ export interface ProfileConfig {
 
 export interface ParserConfig {
   type: "claude-code" | "opencode" | "custom";
+  name?: string; // Display name for the tool (e.g., "Claude Code", "OpenCode")
+  iconUrl?: string; // URL to tool icon (e.g., /images/claude-code.png)
   customParser?: (content: string) => ParsedMessage[];
 }
 

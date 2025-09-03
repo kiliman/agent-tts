@@ -8,6 +8,10 @@ interface ProfileCard {
   profile: string;
   profileName: string;
   profileIcon?: string;
+  model?: string;
+  modelIconUrl?: string;
+  parserName?: string;
+  parserIconUrl?: string;
   avatarUrl?: string;
   profileUrl?: string;
   voiceName?: string;
@@ -199,29 +203,47 @@ export function Dashboard() {
               className="w-48 h-full object-cover"
             />
             <div className="flex-1 p-6 flex flex-col gap-2">
-              <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
-                {card.profileName}
-              </h3>
-              {card.voiceName && (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Voice: {card.voiceName}
-                </p>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
+                  {card.voiceName || card.profileName}
+                </h3>
+                {favoritesCounts[card.profile] > 0 && (
+                  <Link
+                    to={`/${card.profile}?favorites`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1.5 hover:opacity-70 transition-opacity"
+                  >
+                    <Heart className="w-3 h-3 fill-red-500 text-red-500" />
+                    <span className="text-xs text-gray-600 dark:text-gray-400">
+                      {favoritesCounts[card.profile]} favorite{favoritesCounts[card.profile] !== 1 ? 's' : ''}
+                    </span>
+                  </Link>
+                )}
+              </div>
+              {(card.parserName || card.model) && (
+                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                  {card.parserIconUrl && (
+                    <img
+                      src={getResourceUrl(card.parserIconUrl)}
+                      alt={card.parserName}
+                      className="w-4 h-4"
+                    />
+                  )}
+                  {card.parserName && <span>{card.parserName}</span>}
+                  {card.parserName && card.model && <span className="text-gray-400">•</span>}
+                  {card.modelIconUrl && (
+                    <img
+                      src={getResourceUrl(card.modelIconUrl)}
+                      alt={card.model}
+                      className="w-4 h-4"
+                    />
+                  )}
+                  {card.model && <span>{card.model}</span>}
+                </div>
               )}
               <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">
                 {truncateText(card.originalText)}
               </p>
-              {favoritesCounts[card.profile] > 0 && (
-                <Link
-                  to={`/${card.profile}?favorites`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex items-center gap-1.5 hover:opacity-70 transition-opacity"
-                >
-                  <Heart className="w-3 h-3 fill-red-500 text-red-500" />
-                  <span className="text-xs text-gray-600 dark:text-gray-400">
-                    {favoritesCounts[card.profile]} favorite{favoritesCounts[card.profile] !== 1 ? 's' : ''}
-                  </span>
-                </Link>
-              )}
 
               <div className="flex items-center justify-end text-xs text-gray-500 dark:text-gray-400">
                 <span>{formatTimestamp(card.timestamp)}</span>
