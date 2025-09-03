@@ -1,7 +1,19 @@
 import { ParsedMessage } from '../types/config';
 
+export type LogMode = 'append' | 'new';
+
 export abstract class BaseParser {
   abstract parse(content: string): ParsedMessage[];
+  
+  /**
+   * Returns the log mode for this parser
+   * - 'append': Log file is appended to (like Claude Code)
+   * - 'new': Each message creates a new file (like OpenCode)
+   */
+  getLogMode(): LogMode {
+    // Default to 'new' for safety - won't process existing files unnecessarily
+    return 'new';
+  }
   
   protected extractTimestamp(line: string): Date | undefined {
     const timestampMatch = line.match(/\[(\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}[\.\d]*Z?)\]/);

@@ -95,7 +95,8 @@ export class FilepathFilter extends BaseFilter {
     if (meaningfulSegments.length > 4) {
       const lastSegment = meaningfulSegments[meaningfulSegments.length - 1];
       // For project names, they're usually distinctive enough
-      return lastSegment;
+      // Replace dots in filenames with "dot" for better pronunciation
+      return this.replaceDotWithWord(lastSegment);
     }
     
     // Get the last meaningful segment
@@ -112,12 +113,36 @@ export class FilepathFilter extends BaseFilter {
       const parent = meaningfulSegments[meaningfulSegments.length - 2];
       if (parent) {
         // Replace slash with " slash " for better TTS pronunciation
-        return `${parent} slash ${lastSegment}`;
+        // Also replace dots in both segments
+        return `${this.replaceDotWithWord(parent)} slash ${this.replaceDotWithWord(lastSegment)}`;
       }
     }
     
     // For most cases, just return the last segment (project name, filename, etc)
-    return lastSegment;
+    // Replace dots with "dot" for better pronunciation of file extensions
+    return this.replaceDotWithWord(lastSegment);
+  }
+  
+  private replaceDotWithWord(segment: string): string {
+    // Check if this looks like a file with extension (e.g., "file.txt", "script.js")
+    if (segment.includes('.')) {
+      // Split by dot to handle multiple extensions like .test.js
+      const parts = segment.split('.');
+      if (parts.length > 1) {
+        // Process each part
+        const processedParts = parts.map((part, index) => {
+          // If it's after a dot and looks like a file extension (short, alphanumeric)
+          if (index > 0 && part.length <= 4 && /^[a-zA-Z0-9]+$/.test(part)) {
+            // Convert to uppercase and space out the letters (e.g., "tsx" -> "T S X")
+            return part.toUpperCase().split('').join(' ');
+          }
+          return part;
+        });
+        // Join with " dot " for clear pronunciation
+        return processedParts.join(' dot ');
+      }
+    }
+    return segment;
   }
   
   private looksLikePath(text: string): boolean {

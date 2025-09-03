@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { LogViewer } from "./LogViewer";
 import { ToggleSwitch } from "./ToggleSwitch";
@@ -53,6 +53,26 @@ export function ProfileLogViewer({
     const handleLogAdded = (data: any) => {
       if (data.profile === profile) {
         console.log("New log entry for profile:", data);
+        
+        // Check if this message has a new CWD that's not in our list
+        // We'll use a callback to check against the current state
+        if (data.cwd) {
+          setAvailableCwds((currentCwds) => {
+            if (!currentCwds.includes(data.cwd)) {
+              console.log("New CWD detected, adding to list:", data.cwd);
+              // Reload the full list to ensure we're in sync with the backend
+              apiClient.getProfileCwds(profile!).then((response) => {
+                if (response.success && response.cwds) {
+                  setAvailableCwds(response.cwds);
+                }
+              }).catch((err) => {
+                console.error("Failed to reload CWDs:", err);
+              });
+            }
+            return currentCwds;
+          });
+        }
+        
         // Instead of reloading all logs, just prepend the new one
         // Only if we're not in favorites mode, or if it's a favorite
         if (!favoritesOnly || data.isFavorite) {
@@ -238,7 +258,7 @@ export function ProfileLogViewer({
     }
   };
   
-  const loadAvailableCwds = async () => {
+  const loadAvailableCwds = useCallback(async () => {
     if (!profile) return;
     try {
       const response = await apiClient.getProfileCwds(profile);
@@ -248,7 +268,7 @@ export function ProfileLogViewer({
     } catch (err) {
       console.error("Failed to load available CWDs:", err);
     }
-  };
+  }, [profile]);
   
   const handleCwdFilterChange = (cwd: string | undefined) => {
     const params = new URLSearchParams(searchParams);

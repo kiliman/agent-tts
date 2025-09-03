@@ -1,8 +1,13 @@
-import { BaseParser } from './base-parser';
+import { BaseParser, LogMode } from './base-parser';
 import { ParsedMessage } from '../types/config';
 import type { Message, TextBlock } from '@anthropic-ai/sdk/resources/messages';
 
 export class ClaudeCodeParser extends BaseParser {
+  getLogMode(): LogMode {
+    // Claude Code appends to a single JSONL file
+    return 'append';
+  }
+  
   parse(content: string): ParsedMessage[] {
     const messages: ParsedMessage[] = [];
     const lines = content.split('\n').filter(line => line.trim());

@@ -3,6 +3,7 @@ import { watch, FSWatcher } from 'chokidar';
 import { readFileSync, statSync, existsSync } from 'fs';
 import { ProfileConfig, ParsedMessage, FileState } from '../types/config';
 import { DatabaseManager } from './database';
+import { ParserFactory } from '../parsers/parser-factory';
 
 export interface FileChange {
   filepath: string;
@@ -33,6 +34,11 @@ export class FileMonitor extends EventEmitter {
       this.profiles.set(profile.id, profile);
       console.log(`Processing profile: ${profile.id} with ${profile.watchPaths.length} watch paths`);
 
+      // Get the parser to check its log mode
+      const parser = ParserFactory.createParser(profile.parser);
+      const logMode = parser.getLogMode();
+      console.log(`  Parser log mode: ${logMode}`);
+
       // Expand tilde in all paths
       const expandedPaths = profile.watchPaths.map(path => {
         const expanded = path.replace(/^~/, process.env.HOME || '');
@@ -41,10 +47,11 @@ export class FileMonitor extends EventEmitter {
       });
 
       // Create a single watcher for all paths in this profile
-      // Chokidar will handle glob patterns internally including **/*.json
+      // For 'new' mode parsers (like OpenCode), ignore existing files
+      // For 'append' mode parsers (like Claude Code), process existing files
       const watcher = watch(expandedPaths, {
         persistent: true,
-        ignoreInitial: false, // Process existing files
+        ignoreInitial: logMode === 'new', // Skip initial files for 'new' mode
         awaitWriteFinish: {
           stabilityThreshold: 500,
           pollInterval: 100
@@ -60,38 +67,15 @@ export class FileMonitor extends EventEmitter {
       watcher.on('add', async (path) => {
         console.log(`[FileMonitor] File added: ${path}`);
         
-        // Check if this file has been seen before
-        const existingState = await this.database.getFileState(path);
-        const stats = statSync(path);
+        // For 'new' mode parsers, this event only fires for files created after startup
+        // For 'append' mode parsers, this handles both existing and new files
         
-        if (existingState) {
-          // File exists in database - check for new content only
-          console.log(`[FileMonitor] File already tracked, checking for new content`);
+        if (logMode === 'new') {
+          // For 'new' mode (OpenCode), only process truly new files
+          // Since ignoreInitial is true, this only fires for new files after startup
+          console.log(`[FileMonitor] New file detected (${logMode} mode), processing entire content`);
           
-          if (stats.size > existingState.lastProcessedOffset) {
-            // Has new content since last processed
-            console.log(`[FileMonitor] Found new content (${stats.size - existingState.lastProcessedOffset} bytes)`);
-            await this.handleFileChange(path, profile);
-          } else {
-            console.log(`[FileMonitor] No new content to process`);
-          }
-        } else if (!this.isInitialScanComplete) {
-          // New file during startup scan - just save state, don't process old content
-          console.log(`[FileMonitor] New file detected during startup scan, saving state without processing`);
-          
-          // Save file state with current size (marking all existing content as "processed")
-          const state: FileState = {
-            filepath: path,
-            lastModified: stats.mtimeMs,
-            fileSize: stats.size,
-            lastProcessedOffset: stats.size  // Mark current size as processed
-          };
-          await this.database.updateFileState(state);
-          console.log(`[FileMonitor] Saved file state at offset ${stats.size} (skipping existing content)`);
-        } else {
-          // New file after startup - process entire content
-          console.log(`[FileMonitor] New file detected after startup, processing entire content`);
-          
+          const stats = statSync(path);
           if (stats.size > 0) {
             // Read and process the entire file
             const content = readFileSync(path, 'utf-8');
@@ -110,21 +94,82 @@ export class FileMonitor extends EventEmitter {
             }
           }
           
-          // Save file state with current size
-          const state: FileState = {
-            filepath: path,
-            lastModified: stats.mtimeMs,
-            fileSize: stats.size,
-            lastProcessedOffset: stats.size
-          };
-          await this.database.updateFileState(state);
-          console.log(`[FileMonitor] Saved file state at offset ${stats.size}`);
+          // Don't save file state for 'new' mode - each file is independent
+          console.log(`[FileMonitor] Skipping file state for ${logMode} mode`);
+        } else {
+          // For 'append' mode (Claude Code), handle as before
+          // Check if this file has been seen before
+          const existingState = await this.database.getFileState(path);
+          const stats = statSync(path);
+          
+          if (existingState) {
+            // File exists in database - check for new content only
+            console.log(`[FileMonitor] File already tracked, checking for new content`);
+            
+            if (stats.size > existingState.lastProcessedOffset) {
+              // Has new content since last processed
+              console.log(`[FileMonitor] Found new content (${stats.size - existingState.lastProcessedOffset} bytes)`);
+              await this.handleFileChange(path, profile);
+            } else {
+              console.log(`[FileMonitor] No new content to process`);
+            }
+          } else if (!this.isInitialScanComplete) {
+            // New file during startup scan - just save state, don't process old content
+            console.log(`[FileMonitor] New file detected during startup scan, saving state without processing`);
+            
+            // Save file state with current size (marking all existing content as "processed")
+            const state: FileState = {
+              filepath: path,
+              lastModified: stats.mtimeMs,
+              fileSize: stats.size,
+              lastProcessedOffset: stats.size  // Mark current size as processed
+            };
+            await this.database.updateFileState(state);
+            console.log(`[FileMonitor] Saved file state at offset ${stats.size} (skipping existing content)`);
+          } else {
+            // New file after startup - process entire content
+            console.log(`[FileMonitor] New file detected after startup, processing entire content`);
+            
+            if (stats.size > 0) {
+              // Read and process the entire file
+              const content = readFileSync(path, 'utf-8');
+              
+              if (content.trim()) {
+                const change: FileChange = {
+                  filepath: path,
+                  profile,
+                  content,
+                  offset: 0
+                };
+                
+                this.changeQueue.push(change);
+                console.log(`[FileMonitor] Queued new file with ${content.length} chars`);
+                this.processQueue();
+              }
+            }
+            
+            // Save file state with current size
+            const state: FileState = {
+              filepath: path,
+              lastModified: stats.mtimeMs,
+              fileSize: stats.size,
+              lastProcessedOffset: stats.size
+            };
+            await this.database.updateFileState(state);
+            console.log(`[FileMonitor] Saved file state at offset ${stats.size}`);
+          }
         }
       });
 
       watcher.on('change', (path) => {
-        console.log(`[FileMonitor] Change detected in: ${path}`);
-        this.handleFileChange(path, profile);
+        // Only handle changes for 'append' mode parsers
+        // 'new' mode parsers create new files, they don't modify existing ones
+        if (logMode === 'append') {
+          console.log(`[FileMonitor] Change detected in: ${path}`);
+          this.handleFileChange(path, profile);
+        } else {
+          console.log(`[FileMonitor] Ignoring change for ${logMode} mode file: ${path}`);
+        }
       });
 
       watcher.on('error', (error) => {
