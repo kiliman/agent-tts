@@ -18,9 +18,45 @@ export class DatabaseManager {
       fs.mkdirSync(dbDir, { recursive: true });
     }
 
+    // Create backup if database exists
+    if (fs.existsSync(this.dbPath)) {
+      this.createBackup();
+    }
+
     this.db = new Database(this.dbPath);
     this.ttsLogRepo = new TTSLogRepository();
     this.initialize();
+  }
+  
+  private createBackup(): void {
+    try {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const backupDir = path.join(path.dirname(this.dbPath), 'backups');
+      
+      // Create backup directory if it doesn't exist
+      if (!fs.existsSync(backupDir)) {
+        fs.mkdirSync(backupDir, { recursive: true });
+      }
+      
+      const backupPath = path.join(backupDir, `agent-tts-${timestamp}.db`);
+      fs.copyFileSync(this.dbPath, backupPath);
+      console.log(`[Database] Backup created: ${backupPath}`);
+      
+      // Clean up old backups (keep last 10)
+      const backups = fs.readdirSync(backupDir)
+        .filter(f => f.startsWith('agent-tts-') && f.endsWith('.db'))
+        .sort()
+        .reverse();
+      
+      if (backups.length > 10) {
+        for (const oldBackup of backups.slice(10)) {
+          fs.unlinkSync(path.join(backupDir, oldBackup));
+          console.log(`[Database] Removed old backup: ${oldBackup}`);
+        }
+      }
+    } catch (err) {
+      console.error('[Database] Failed to create backup:', err);
+    }
   }
   
   getTTSLog(): TTSLogRepository {
@@ -48,7 +84,7 @@ export class DatabaseManager {
         profile TEXT NOT NULL,
         original_text TEXT NOT NULL,
         filtered_text TEXT NOT NULL,
-        state TEXT CHECK(state IN ('queued', 'playing', 'played', 'error')) NOT NULL,
+        state TEXT CHECK(state IN ('queued', 'playing', 'played', 'error', 'user')) NOT NULL,
         api_response_status INTEGER,
         api_response_message TEXT,
         processing_time INTEGER,
@@ -86,6 +122,101 @@ export class DatabaseManager {
       `);
       console.log('[Database] Added cwd column to tts_queue table');
     }
+    
+    // Migration: Add role column if it doesn't exist
+    const hasRoleColumn = columns.some((col: any) => col.name === 'role');
+    
+    if (!hasRoleColumn) {
+      this.db.exec(`
+        ALTER TABLE tts_queue 
+        ADD COLUMN role TEXT CHECK(role IN ('user', 'assistant'));
+        
+        CREATE INDEX IF NOT EXISTS idx_tts_queue_role ON tts_queue(role);
+      `);
+      console.log('[Database] Added role column to tts_queue table');
+    }
+    
+    // Migration: Update state constraint to include 'user'
+    // Need to recreate the table to modify CHECK constraint
+    try {
+      // Check if we need to update the constraint
+      const tableInfo = this.db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='tts_queue'").get() as any;
+      if (tableInfo && tableInfo.sql) {
+        const needsUpdate = !tableInfo.sql.includes("'user'") || 
+                          tableInfo.sql.includes("CHECK(state IN ('queued', 'playing', 'played', 'error'))");
+        
+        if (needsUpdate) {
+          console.log('[Database] Updating state constraint to include "user"...');
+          console.log('[Database] Current table definition:', tableInfo.sql);
+          
+          // Start a transaction
+          this.db.exec('BEGIN TRANSACTION');
+          
+          try {
+            // Create a new table with the updated constraint
+            this.db.exec(`
+              CREATE TABLE tts_queue_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp INTEGER NOT NULL,
+                filename TEXT NOT NULL,
+                profile TEXT NOT NULL,
+                original_text TEXT NOT NULL,
+                filtered_text TEXT NOT NULL,
+                state TEXT CHECK(state IN ('queued', 'playing', 'played', 'error', 'user')) NOT NULL,
+                api_response_status INTEGER,
+                api_response_message TEXT,
+                processing_time INTEGER,
+                created_at INTEGER DEFAULT (strftime('%s', 'now')),
+                is_favorite INTEGER DEFAULT 0,
+                cwd TEXT,
+                role TEXT CHECK(role IN ('user', 'assistant'))
+              );
+            `);
+            
+            // Copy data from old table (only columns that exist)
+            this.db.exec(`
+              INSERT INTO tts_queue_new (
+                id, timestamp, filename, profile, original_text, filtered_text, 
+                state, api_response_status, api_response_message, processing_time, 
+                created_at, is_favorite, cwd, role
+              )
+              SELECT 
+                id, timestamp, filename, profile, original_text, filtered_text,
+                state, api_response_status, api_response_message, processing_time,
+                created_at, is_favorite, cwd, role
+              FROM tts_queue
+            `);
+            
+            // Drop old table
+            this.db.exec('DROP TABLE tts_queue');
+            
+            // Rename new table
+            this.db.exec('ALTER TABLE tts_queue_new RENAME TO tts_queue');
+            
+            // Recreate indexes
+            this.db.exec(`
+              CREATE INDEX IF NOT EXISTS idx_tts_queue_state ON tts_queue(state);
+              CREATE INDEX IF NOT EXISTS idx_tts_queue_timestamp ON tts_queue(timestamp DESC);
+              CREATE INDEX IF NOT EXISTS idx_tts_queue_profile ON tts_queue(profile);
+              CREATE INDEX IF NOT EXISTS idx_tts_queue_favorites ON tts_queue(is_favorite, timestamp DESC);
+              CREATE INDEX IF NOT EXISTS idx_tts_queue_cwd ON tts_queue(cwd);
+              CREATE INDEX IF NOT EXISTS idx_tts_queue_role ON tts_queue(role);
+            `);
+            
+            // Commit transaction
+            this.db.exec('COMMIT');
+            
+            console.log('[Database] Successfully updated state constraint');
+          } catch (error) {
+            // Rollback on error
+            this.db.exec('ROLLBACK');
+            throw error;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[Database] Error updating state constraint:', err);
+    }
   }
 
   getFileState(filepath: string): FileState | null {
@@ -121,9 +252,9 @@ export class DatabaseManager {
     const result = this.db.prepare(
       `INSERT INTO tts_queue (
         timestamp, filename, profile, original_text, filtered_text,
-        state, api_response_status, api_response_message, processing_time, cwd
+        state, api_response_status, api_response_message, processing_time, cwd, role
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       entry.timestamp.getTime(),
       entry.filename,
@@ -134,7 +265,8 @@ export class DatabaseManager {
       entry.apiResponseStatus || null,
       entry.apiResponseMessage || null,
       entry.processingTime || null,
-      entry.cwd || null
+      entry.cwd || null,
+      entry.role || null
     );
     
     return result.lastInsertRowid as number;
@@ -159,7 +291,8 @@ export class DatabaseManager {
       apiResponseMessage: row.api_response_message,
       processingTime: row.processing_time,
       isFavorite: row.is_favorite,
-      cwd: row.cwd
+      cwd: row.cwd,
+      role: row.role
     };
   }
 
@@ -240,7 +373,9 @@ export class DatabaseManager {
       apiResponseStatus: row.api_response_status,
       apiResponseMessage: row.api_response_message,
       processingTime: row.processing_time,
-      isFavorite: row.is_favorite === 1
+      isFavorite: row.is_favorite === 1,
+      cwd: row.cwd,
+      role: row.role
     };
   }
   

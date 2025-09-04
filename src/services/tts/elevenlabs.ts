@@ -1,9 +1,6 @@
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import { BaseTTSService } from './base.js';
 import { TTSServiceConfig } from '../../types/config.js';
-import { writeFile } from 'fs/promises';
-import { tmpdir } from 'os';
-import { join } from 'path';
 
 export class ElevenLabsTTSService extends BaseTTSService {
   private client: ElevenLabsClient | null = null;
@@ -55,17 +52,19 @@ export class ElevenLabsTTSService extends BaseTTSService {
       // Convert stream to buffer
       const audioBuffer = await this.streamToBuffer(audioStream);
       
-      // Save to temp file
-      const tempFile = join(tmpdir(), `tts-${Date.now()}.mp3`);
-      await writeFile(tempFile, audioBuffer);
-      
-      // Save a permanent copy if metadata provided
+      // Save directly to permanent location
       if (metadata?.profile && metadata?.timestamp) {
-        await this.saveAudioFile(tempFile, metadata.profile, metadata.timestamp);
+        const audioPath = await this.saveAudioData(
+          audioBuffer,
+          metadata.profile,
+          metadata.timestamp,
+          'mp3'
+        );
+        return audioPath;
+      } else {
+        // If no metadata, we need to create a temp path (shouldn't happen in normal flow)
+        throw new Error('Metadata required for audio file storage');
       }
-      
-      // Return the temp file path for external playback
-      return tempFile;
     } catch (error: any) {
       // Extract useful error information without dumping entire request object
       let errorMessage = 'TTS request failed';

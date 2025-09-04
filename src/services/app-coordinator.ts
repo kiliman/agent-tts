@@ -67,6 +67,7 @@ export class AppCoordinator extends EventEmitter {
           avatarUrl: message.profileConfig?.ttsService?.avatarUrl,
           profileUrl: message.profileConfig?.ttsService?.profileUrl,
           voiceName: message.profileConfig?.ttsService?.voiceName,
+          role: message.role,
         };
         this.emit("log-added", logEntry);
 
@@ -81,6 +82,33 @@ export class AppCoordinator extends EventEmitter {
         } else {
           console.log(`[AppCoordinator] Skipping message - profile disabled`);
         }
+      }
+    );
+    
+    // Handle user messages (logged but not queued for TTS)
+    this.messageProcessor.on(
+      "messageLogged",
+      async (message: QueuedMessage) => {
+        console.log(
+          `[AppCoordinator] User message logged from profile: ${message.profile}`
+        );
+
+        // Emit log-added event for WebSocket clients
+        const logEntry = {
+          id: message.id,
+          timestamp: message.timestamp,
+          profile: message.profile,
+          filePath: message.filename,
+          originalText: message.originalText,
+          filteredText: message.filteredText,
+          status: "user",
+          cwd: this.replaceHomeWithTilde(message.cwd),
+          avatarUrl: message.profileConfig?.ttsService?.avatarUrl,
+          profileUrl: message.profileConfig?.ttsService?.profileUrl,
+          voiceName: message.profileConfig?.ttsService?.voiceName,
+          role: "user",
+        };
+        this.emit("log-added", logEntry);
       }
     );
 

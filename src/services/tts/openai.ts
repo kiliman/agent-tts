@@ -1,8 +1,5 @@
 import { BaseTTSService } from './base.js';
 import { TTSServiceConfig } from '../../types/config.js';
-import { writeFile } from 'fs/promises';
-import { tmpdir } from 'os';
-import { join } from 'path';
 import axios from 'axios';
 
 export class OpenAITTSService extends BaseTTSService {
@@ -11,6 +8,7 @@ export class OpenAITTSService extends BaseTTSService {
   protected model: string;
   protected speed: number;
   protected responseFormat: string;
+  protected instructions?: string;
   
   constructor(config: TTSServiceConfig) {
     super(config);
@@ -21,6 +19,7 @@ export class OpenAITTSService extends BaseTTSService {
     this.model = config.model || 'tts-1';
     this.speed = config.options?.speed || 1.0;
     this.responseFormat = config.options?.responseFormat || 'mp3';
+    this.instructions = config.options?.instructions;
     
     console.log(`[OpenAI] Initializing with base URL: ${this.baseUrl}, voice: ${this.voiceId}, model: ${this.model}`);
   }
@@ -38,15 +37,22 @@ export class OpenAITTSService extends BaseTTSService {
     }
     
     try {
+      const requestBody: any = {
+        model: this.model,
+        input: text,
+        voice: this.voiceId,
+        speed: this.speed,
+        response_format: this.responseFormat
+      };
+      
+      // Add instructions if provided
+      if (this.instructions) {
+        requestBody.instructions = this.instructions;
+      }
+      
       const response = await axios.post(
         `${this.baseUrl}/audio/speech`,
-        {
-          model: this.model,
-          input: text,
-          voice: this.voiceId,
-          speed: this.speed,
-          response_format: this.responseFormat
-        },
+        requestBody,
         {
           headers: {
             'Authorization': `Bearer ${this.apiKey}`,
@@ -56,22 +62,26 @@ export class OpenAITTSService extends BaseTTSService {
         }
       );
       
-      // Save to temp file
+      // Determine file extension
       const extension = this.responseFormat === 'opus' ? 'opus' : 
                        this.responseFormat === 'aac' ? 'aac' : 
                        this.responseFormat === 'flac' ? 'flac' : 
                        this.responseFormat === 'wav' ? 'wav' : 
                        this.responseFormat === 'pcm' ? 'pcm' : 'mp3';
-      const tempFile = join(tmpdir(), `tts-${Date.now()}.${extension}`);
-      await writeFile(tempFile, Buffer.from(response.data));
       
-      // Save a permanent copy if metadata provided
+      // Save directly to permanent location
       if (metadata?.profile && metadata?.timestamp) {
-        await this.saveAudioFile(tempFile, metadata.profile, metadata.timestamp);
+        const audioPath = await this.saveAudioData(
+          Buffer.from(response.data),
+          metadata.profile,
+          metadata.timestamp,
+          extension
+        );
+        return audioPath;
+      } else {
+        // If no metadata, we need to create a temp path (shouldn't happen in normal flow)
+        throw new Error('Metadata required for audio file storage');
       }
-      
-      // Return the temp file path for external playback
-      return tempFile;
     } catch (error: any) {
       // Extract useful error information without dumping entire request object
       let errorMessage = 'TTS request failed';

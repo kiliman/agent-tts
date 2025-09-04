@@ -15,12 +15,13 @@ interface LogEntry {
   profile: string;
   originalText: string;
   filteredText: string;
-  status: "queued" | "played" | "error";
+  status: "queued" | "played" | "error" | "user";
   filePath: string;
   avatarUrl?: string;
   voiceName?: string;
   isFavorite?: boolean;
   cwd?: string;
+  role?: "user" | "assistant";
 }
 
 interface LogViewerProps {
@@ -194,114 +195,132 @@ export function LogViewer({
             No log entries yet
           </div>
         ) : (
-          [...logs].reverse().map((log) => (
-            <div
-              key={log.id}
-              className={clsx(
-                "mb-3 bg-white dark:bg-gray-800 border rounded-lg overflow-hidden transition-all border-gray-200 dark:border-gray-700",
-                {
-                  "border-red-500 dark:border-red-400": log.status === "error",
-                  "border-blue-500 dark:border-blue-400":
-                    log.status === "queued",
-                  "border-green-500 dark:border-green-400 shadow-lg shadow-green-500/20 animate-pulse bg-gradient-to-r from-green-50 to-transparent dark:from-green-900/20":
-                    playingId === log.id,
-                }
-              )}
-            >
-              <div className="p-3 flex items-center gap-3">
-                <span className="text-gray-500 dark:text-gray-400 text-xs">
-                  {formatTimestamp(log.timestamp)}
-                </span>
-                <div 
-                  className={clsx("flex-1 text-sm truncate cursor-pointer select-none", {
-                    "text-gray-400 dark:text-gray-500": log.status === "queued",
-                    "text-gray-900 dark:text-gray-100": log.status !== "queued"
-                  })}
-                  onClick={() => toggleExpand(log.id)}
-                  title={expandedIds.has(log.id) ? "Click to collapse" : "Click to expand"}
+          <div className="space-y-4 max-w-4xl mx-auto">
+            {[...logs].reverse().map((log) => {
+              const isUser = log.role === 'user' || log.status === 'user';
+              const isAssistant = !isUser;
+              
+              return (
+                <div
+                  key={log.id}
+                  className={clsx(
+                    "flex gap-3",
+                    isUser ? "justify-end" : "justify-start"
+                  )}
                 >
-                  {expandedIds.has(log.id)
-                    ? "Click to collapse..."
-                    : log.originalText}
-                </div>
-                <div className="flex gap-2">
-                  {onToggleFavorite && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleFavorite(log.id);
-                      }}
-                      className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded transition-colors"
-                      title={log.isFavorite ? "Remove from favorites" : "Add to favorites"}
-                    >
-                      <Heart 
-                        className={clsx("w-4 h-4", {
-                          "fill-red-500 text-red-500": log.isFavorite,
-                          "text-gray-500 dark:text-gray-400": !log.isFavorite
-                        })}
-                      />
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (playingId === log.id && onPause) {
-                        console.log(`[LogViewer] Pausing playback for log ID: ${log.id}`);
-                        onPause();
-                      } else {
-                        console.log(`[LogViewer] Starting playback for log ID: ${log.id}`);
-                        handlePlay(log.id);
+                  {/* Message bubble */}
+                  <div
+                    className={clsx(
+                      "max-w-[66%] rounded-2xl px-4 py-3 relative",
+                      isUser ? (
+                        "bg-blue-600 text-white ml-12"
+                      ) : (
+                        "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 mr-12"
+                      ),
+                      {
+                        "shadow-lg shadow-green-500/20 animate-pulse": playingId === log.id && isAssistant,
                       }
-                    }}
-                    className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded transition-colors"
-                    title={playingId === log.id ? "Pause" : "Play"}
+                    )}
                   >
-                    {playingId === log.id ? 
-                      <Pause className="w-4 h-4" /> : 
-                      <Play className="w-4 h-4" />
-                    }
-                  </button>
-                </div>
-              </div>
-
-              {expandedIds.has(log.id) && (
-                <div className="px-3 pb-3 border-t border-gray-200 dark:border-gray-700">
-                  <div className="mt-3">
-                    <strong className="block mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase">
-                      Original Text:
-                    </strong>
-                    <pre className="bg-gray-100 dark:bg-gray-900 p-2 rounded text-xs font-mono whitespace-pre-wrap break-words overflow-x-auto">
-                      {log.originalText}
-                    </pre>
-                  </div>
-                  <div className="mt-3">
-                    <strong className="block mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase">
-                      Filtered Text (Sent to TTS):
-                    </strong>
-                    <pre className="bg-gray-100 dark:bg-gray-900 p-2 rounded text-xs font-mono whitespace-pre-wrap break-words overflow-x-auto">
-                      {log.filteredText}
-                    </pre>
-                  </div>
-                  <div className="mt-3">
-                    <strong className="block mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase">
-                      File:
-                    </strong>
-                    <span className="text-sm">{log.filePath}</span>
-                  </div>
-                  {log.cwd && (
-                    <div className="mt-3">
-                      <strong className="block mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase">
-                        Project Directory:
-                      </strong>
-                      <span className="text-sm font-mono">{log.cwd}</span>
+                    {/* Timestamp */}
+                    <div className={clsx(
+                      "text-xs mb-1",
+                      isUser ? "text-blue-100" : "text-gray-500 dark:text-gray-400"
+                    )}>
+                      {formatTimestamp(log.timestamp)}
                     </div>
-                  )}
+                    
+                    {/* Message content */}
+                    <div 
+                      className={clsx(
+                        "text-sm cursor-pointer select-none",
+                        isUser ? "text-white" : "text-gray-900 dark:text-gray-100",
+                        expandedIds.has(log.id) ? "" : "line-clamp-3"
+                      )}
+                      onClick={() => toggleExpand(log.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          toggleExpand(log.id);
+                        }
+                      }}
+                      title={expandedIds.has(log.id) ? "Click to collapse" : "Click to expand"}
+                    >
+                      {log.originalText}
+                    </div>
+                    
+                    {/* Action buttons */}
+                    {isAssistant && (
+                      <div className="flex gap-2 mt-2">
+                        {onToggleFavorite && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onToggleFavorite(log.id);
+                            }}
+                            className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                            title={log.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                          >
+                            <Heart 
+                              className={clsx("w-4 h-4", {
+                                "fill-red-500 text-red-500": log.isFavorite,
+                                "text-gray-500 dark:text-gray-400": !log.isFavorite
+                              })}
+                            />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (playingId === log.id && onPause) {
+                              console.log(`[LogViewer] Pausing playback for log ID: ${log.id}`);
+                              onPause();
+                            } else {
+                              console.log(`[LogViewer] Starting playback for log ID: ${log.id}`);
+                              handlePlay(log.id);
+                            }
+                          }}
+                          className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                          title={playingId === log.id ? "Pause" : "Play"}
+                        >
+                          {playingId === log.id ? 
+                            <Pause className="w-4 h-4 text-gray-600 dark:text-gray-400" /> : 
+                            <Play className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                          }
+                        </button>
+                      </div>
+                    )}
+                    
+                    {/* Expanded details */}
+                    {expandedIds.has(log.id) && isAssistant && (
+                      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                        <div className="mt-2">
+                          <strong className="block mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase">
+                            Filtered Text (Sent to TTS):
+                          </strong>
+                          <pre className="bg-gray-100 dark:bg-gray-900 p-2 rounded text-xs font-mono whitespace-pre-wrap break-words overflow-x-auto">
+                            {log.filteredText}
+                          </pre>
+                        </div>
+                        {log.cwd && (
+                          <div className="mt-2">
+                            <strong className="block mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase">
+                              Project:
+                            </strong>
+                            <span className="text-xs font-mono">{log.cwd}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-          ))
+              );
+            })}
+          </div>
         )}
       </div>
     </div>

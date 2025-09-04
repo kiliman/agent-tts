@@ -34,7 +34,7 @@ export class OpenCodeParser extends BaseParser {
               // Extract cwd from the message file
               const cwd = messageData.path?.cwd;
               
-              // Only process assistant messages
+              // Process both assistant and user messages
               if (messageData.role === 'assistant') {
                 messages.push({
                   role: "assistant",
@@ -43,6 +43,14 @@ export class OpenCodeParser extends BaseParser {
                   cwd: cwd
                 });
                 console.log(`[OpenCodeParser] Processing assistant message with cwd: ${cwd}`);
+              } else if (messageData.role === 'user') {
+                messages.push({
+                  role: "user",
+                  content: partMessage.text,
+                  timestamp: partMessage.time?.start ? new Date(partMessage.time.start) : new Date(),
+                  cwd: cwd
+                });
+                console.log(`[OpenCodeParser] Processing user message with cwd: ${cwd}`);
               } else {
                 console.log(`[OpenCodeParser] Skipping ${messageData.role} message`);
               }

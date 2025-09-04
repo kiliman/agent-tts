@@ -30,28 +30,38 @@ export class ClaudeCodeParser extends BaseParser {
       try {
         const data = JSON.parse(line);
         
-        // Only process assistant messages (skip user, tool results, etc)
-        if (data.type !== 'assistant' || !data.message) {
-          continue;
+        // Process both user and assistant messages
+        if (data.type === 'user' && data.message && 
+            data.message.role === 'user' && 
+            typeof data.message.content === 'string') {
+          // Parse user message - only if it has the proper structure
+          const timestamp = data.timestamp ? new Date(data.timestamp) : new Date();
+          messages.push({
+            role: 'user',
+            content: data.message.content,
+            timestamp,
+            cwd: data.cwd || cwd
+          });
+        } else if (data.type === 'assistant' && data.message) {
+          // Process assistant message
+          const message = data.message as Message;
+          
+          // Extract text from the message content
+          const text = this.extractTextFromMessage(message);
+          if (!text || !text.trim()) {
+            continue;
+          }
+          
+          // Parse timestamp
+          const timestamp = data.timestamp ? new Date(data.timestamp) : new Date();
+          
+          messages.push({
+            role: 'assistant',
+            content: text,
+            timestamp,
+            cwd: data.cwd || cwd // Use message-specific cwd if available, otherwise use the file-level cwd
+          });
         }
-        
-        const message = data.message as Message;
-        
-        // Extract text from the message content
-        const text = this.extractTextFromMessage(message);
-        if (!text || !text.trim()) {
-          continue;
-        }
-        
-        // Parse timestamp
-        const timestamp = data.timestamp ? new Date(data.timestamp) : new Date();
-        
-        messages.push({
-          role: 'assistant',
-          content: text,
-          timestamp,
-          cwd: data.cwd || cwd // Use message-specific cwd if available, otherwise use the file-level cwd
-        });
       } catch (error) {
         // Skip invalid JSON lines
         console.log(`[ClaudeCodeParser] Skipping invalid JSON line: ${error}`);

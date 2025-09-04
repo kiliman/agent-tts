@@ -18,9 +18,9 @@ export class TTSLogRepository {
     const result = this.db.prepare(`
       INSERT INTO tts_queue (
         timestamp, filename, profile, original_text, filtered_text,
-        state, api_response_status, api_response_message, processing_time, cwd
+        state, api_response_status, api_response_message, processing_time, cwd, role
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       entry.timestamp,
       entry.filePath,
@@ -31,7 +31,8 @@ export class TTSLogRepository {
       entry.ttsStatus,
       entry.ttsMessage,
       entry.elapsed,
-      entry.cwd || null
+      entry.cwd || null,
+      entry.role || null
     );
     
     return result.lastInsertRowid as number;

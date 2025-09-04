@@ -77,10 +77,11 @@ export interface TTSQueueEntry {
   profile: string;
   originalText: string;
   filteredText: string;
-  state: "queued" | "playing" | "played" | "error";
+  state: "queued" | "playing" | "played" | "error" | "user";
   apiResponseStatus?: number;
   apiResponseMessage?: string;
   processingTime?: number;
   isFavorite?: boolean;
   cwd?: string;
+  role?: "user" | "assistant"; // Track the role for proper display
 }
