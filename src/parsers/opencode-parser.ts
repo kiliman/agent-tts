@@ -34,23 +34,45 @@ export class OpenCodeParser extends BaseParser {
               // Extract cwd from the message file
               const cwd = messageData.path?.cwd;
               
+              // Get timestamp - use part time if available and non-zero, otherwise use message createdAt or file creation time
+              const getTimestamp = () => {
+                if (partMessage.time?.start && partMessage.time.start > 0) {
+                  return new Date(partMessage.time.start);
+                } else if (messageData.createdAt) {
+                  // createdAt is in ISO format
+                  return new Date(messageData.createdAt);
+                } else if (filePath) {
+                  // Use part file's creation time as last resort
+                  try {
+                    const stats = fs.statSync(filePath);
+                    return new Date(stats.birthtime);
+                  } catch (e) {
+                    return new Date();
+                  }
+                } else {
+                  return new Date();
+                }
+              };
+              
+              const timestamp = getTimestamp();
+              
               // Process both assistant and user messages
               if (messageData.role === 'assistant') {
                 messages.push({
                   role: "assistant",
                   content: partMessage.text,
-                  timestamp: partMessage.time?.start ? new Date(partMessage.time.start) : new Date(),
+                  timestamp: timestamp,
                   cwd: cwd
                 });
-                console.log(`[OpenCodeParser] Processing assistant message with cwd: ${cwd}`);
+                console.log(`[OpenCodeParser] Processing assistant message with cwd: ${cwd}, timestamp: ${timestamp.toISOString()}`);
               } else if (messageData.role === 'user') {
                 messages.push({
                   role: "user",
                   content: partMessage.text,
-                  timestamp: partMessage.time?.start ? new Date(partMessage.time.start) : new Date(),
+                  timestamp: timestamp,
                   cwd: cwd
                 });
-                console.log(`[OpenCodeParser] Processing user message with cwd: ${cwd}`);
+                console.log(`[OpenCodeParser] Processing user message with cwd: ${cwd}, timestamp: ${timestamp.toISOString()}`);
               } else {
                 console.log(`[OpenCodeParser] Skipping ${messageData.role} message`);
               }

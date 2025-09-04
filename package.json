@@ -36,7 +36,8 @@
     "preview": "npm run build && npm run start",
     "clean": "rimraf dist",
     "lint": "eslint . --ext .ts,.tsx",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:regenerate": "tsx scripts/regenerate-db.ts"
   },
   "keywords": [
     "tts",
