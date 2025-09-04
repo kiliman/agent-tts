@@ -6,7 +6,11 @@ import {
   Pause,
   RefreshCw,
   Heart,
-  Loader2
+  Loader2,
+  Copy,
+  Check,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 
 interface LogEntry {
@@ -55,6 +59,7 @@ export function LogViewer({
 }: LogViewerProps) {
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [autoScrollLocal, setAutoScrollLocal] = useState(autoScrollProp);
+  const [copiedId, setCopiedId] = useState<number | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef<boolean>(false);
   
@@ -162,6 +167,13 @@ export function LogViewer({
     }
   };
 
+  const handleCopy = (text: string, id: number) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  };
+
   return (
     <div className="flex flex-col h-full">
       {showControls && (
@@ -233,28 +245,48 @@ export function LogViewer({
                     {/* Message content */}
                     <div 
                       className={clsx(
-                        "text-sm cursor-pointer select-none",
+                        "text-sm",
                         isUser ? "text-white" : "text-gray-900 dark:text-gray-100",
                         expandedIds.has(log.id) ? "" : "line-clamp-3"
                       )}
-                      onClick={() => toggleExpand(log.id)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          toggleExpand(log.id);
-                        }
-                      }}
-                      title={expandedIds.has(log.id) ? "Click to collapse" : "Click to expand"}
                     >
                       {log.originalText}
                     </div>
                     
                     {/* Action buttons */}
-                    {isAssistant && (
+                    {(isAssistant || isUser) && (
                       <div className="flex gap-2 mt-2">
-                        {onToggleFavorite && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopy(log.originalText, log.id);
+                          }}
+                          className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                          title={copiedId === log.id ? "Copied!" : "Copy message"}
+                        >
+                          {copiedId === log.id ? 
+                            <Check className="w-4 h-4 text-green-600 dark:text-green-400" /> : 
+                            <Copy className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                          }
+                        </button>
+                        {isAssistant && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleExpand(log.id);
+                            }}
+                            className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                            title={expandedIds.has(log.id) ? "Collapse details" : "Expand details"}
+                          >
+                            {expandedIds.has(log.id) ? 
+                              <ChevronUp className="w-4 h-4 text-gray-600 dark:text-gray-400" /> : 
+                              <ChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                            }
+                          </button>
+                        )}
+                        {isAssistant && onToggleFavorite && (
                           <button
                             type="button"
                             onClick={(e) => {
@@ -272,26 +304,28 @@ export function LogViewer({
                             />
                           </button>
                         )}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (playingId === log.id && onPause) {
-                              console.log(`[LogViewer] Pausing playback for log ID: ${log.id}`);
-                              onPause();
-                            } else {
-                              console.log(`[LogViewer] Starting playback for log ID: ${log.id}`);
-                              handlePlay(log.id);
+                        {isAssistant && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (playingId === log.id && onPause) {
+                                console.log(`[LogViewer] Pausing playback for log ID: ${log.id}`);
+                                onPause();
+                              } else {
+                                console.log(`[LogViewer] Starting playback for log ID: ${log.id}`);
+                                handlePlay(log.id);
+                              }
+                            }}
+                            className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                            title={playingId === log.id ? "Pause" : "Play"}
+                          >
+                            {playingId === log.id ? 
+                              <Pause className="w-4 h-4 text-gray-600 dark:text-gray-400" /> : 
+                              <Play className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                             }
-                          }}
-                          className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                          title={playingId === log.id ? "Pause" : "Play"}
-                        >
-                          {playingId === log.id ? 
-                            <Pause className="w-4 h-4 text-gray-600 dark:text-gray-400" /> : 
-                            <Play className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                          }
-                        </button>
+                          </button>
+                        )}
                       </div>
                     )}
                     
