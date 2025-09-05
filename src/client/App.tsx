@@ -17,25 +17,44 @@ function AppHeader({ connected }: { connected: boolean }) {
   const isProfilePage = location.pathname !== "/";
 
   return (
-    <header className="px-6 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+    <header className="px-3 sm:px-6 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3 sm:gap-4">
           {isProfilePage && (
             <Link
               to="/"
-              className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 flex items-center gap-1"
+              className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 flex items-center gap-1 pr-2 sm:pr-0"
+              title="Back to Dashboard"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to Dashboard
+              <span className="hidden sm:inline">Back to Dashboard</span>
             </Link>
           )}
           <div className="flex items-center gap-2">
-            <img
-              src="/images/agent-tts.png"
-              alt="Agent TTS"
-              className="h-8 w-8"
-            />
-            <h1 className="text-xl font-semibold">Agent TTS</h1>
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              viewBox="0 0 40 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="1.8" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+              className="h-8 w-10 text-gray-700 dark:text-gray-300"
+              aria-label="Agent TTS Logo"
+            >
+              {/* Chat bubble with tail */}
+              <path d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-5l-3.5 3.5v-3.5H5a2 2 0 0 1-2-2V5z" />
+              
+              {/* Code symbol inside bubble - more spaced out */}
+              <path d="M8 7.5L5.5 10l2.5 2.5" />
+              <path d="M13 7.5l2.5 2.5L13 12.5" />
+              <path d="M10.5 6.5l-1 7" />
+              
+              {/* Sound waves - curved on the right side */}
+              <path d="M24 8c1.5 0 2.5 1 2.5 2s-1 2-2.5 2" fill="none" />
+              <path d="M28 6c2.5 0 4 2 4 4s-1.5 4-4 4" fill="none" />
+            </svg>
+            <h1 className="text-lg sm:text-xl font-semibold">Agent TTS</h1>
           </div>
         </div>
 
@@ -45,16 +64,17 @@ function AppHeader({ connected }: { connected: boolean }) {
               "text-green-600 dark:text-green-400": connected,
               "text-red-600 dark:text-red-400": !connected,
             })}
+            title={connected ? "Connected" : "Disconnected"}
           >
             {connected ? (
               <>
                 <Wifi className="w-4 h-4" />
-                Connected
+                <span className="hidden sm:inline">Connected</span>
               </>
             ) : (
               <>
                 <WifiOff className="w-4 h-4" />
-                Disconnected
+                <span className="hidden sm:inline">Disconnected</span>
               </>
             )}
           </div>

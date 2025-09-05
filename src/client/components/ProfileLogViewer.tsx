@@ -287,26 +287,26 @@ export function ProfileLogViewer({
   return (
     <div className="flex flex-col h-full">
       {profileInfo && (
-        <div className="px-6 py-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="px-3 sm:px-6 py-3 sm:py-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
               {profileInfo.avatarUrl || profileInfo.profileUrl ? (
                 <img
                   src={getResourceUrl(
                     profileInfo.avatarUrl || profileInfo.profileUrl
                   )}
                   alt={profileInfo.name}
-                  className="h-20 w-20 rounded-lg object-cover"
+                  className="h-16 w-16 sm:h-20 sm:w-20 rounded-lg object-cover flex-shrink-0"
                 />
               ) : (
-                <div className="h-20 w-20 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                  <Bot className="w-10 h-10 text-gray-600 dark:text-gray-400" />
+                <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                  <Bot className="w-8 h-8 sm:w-10 sm:h-10 text-gray-600 dark:text-gray-400" />
                 </div>
               )}
 
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 truncate">
                     {profileInfo.voiceName || profileInfo.name || profile}
                   </h2>
                   {favoritesCount > 0 && (
@@ -318,17 +318,20 @@ export function ProfileLogViewer({
                           navigate(`/${profile}?favorites`);
                         }
                       }}
-                      className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+                      className="flex items-center gap-1 sm:gap-1.5 hover:opacity-80 transition-opacity flex-shrink-0"
                     >
                       <Heart className="w-4 h-4 fill-red-500 text-red-500" />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                      <span className="text-sm text-gray-600 dark:text-gray-400 hidden sm:inline">
                         {favoritesCount} favorite{favoritesCount !== 1 ? "s" : ""}
+                      </span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400 sm:hidden">
+                        {favoritesCount}
                       </span>
                     </button>
                   )}
                 </div>
                 {(profileInfo.parserName || profileInfo.model) && (
-                  <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  <div className="hidden sm:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mt-1">
                     {profileInfo.parserIconUrl && (
                       <img
                         src={getResourceUrl(profileInfo.parserIconUrl)}
@@ -351,16 +354,17 @@ export function ProfileLogViewer({
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 items-end">
-              <div className="flex gap-2">
+            <div className="flex flex-col gap-1 sm:gap-2 items-end">
+              <div className="flex gap-1 sm:gap-2">
                 <div className="relative" ref={cwdDropdownRef}>
                   <button
                     type="button"
                     onClick={() => setShowCwdDropdown(!showCwdDropdown)}
-                    className="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm font-medium transition-colors inline-flex items-center gap-1.5"
+                    className="p-2 sm:px-3 sm:py-1.5 bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-700 dark:text-white rounded text-sm font-medium transition-colors inline-flex items-center gap-1.5"
+                    title={cwdFilter ? "Filtered" : "All Projects"}
                   >
                     <FolderOpen className="w-4 h-4" />
-                    {cwdFilter ? "Filtered" : "All Projects"}
+                    <span className="hidden sm:inline">{cwdFilter ? "Filtered" : "All Projects"}</span>
                   </button>
                   {showCwdDropdown && availableCwds.length > 0 && (
                     <div className="absolute right-0 mt-1 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-h-60 overflow-y-auto z-50">
@@ -395,10 +399,11 @@ export function ProfileLogViewer({
                     loadLogs(true);
                     if (onRefresh) onRefresh();
                   }}
-                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors inline-flex items-center gap-1.5"
+                  className="p-2 sm:px-3 sm:py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors inline-flex items-center gap-1.5"
+                  title="Refresh"
                 >
                   <RefreshCw className="w-4 h-4" />
-                  Refresh
+                  <span className="hidden sm:inline">Refresh</span>
                 </button>
               </div>
               <ToggleSwitch

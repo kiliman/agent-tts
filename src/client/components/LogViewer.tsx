@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import clsx from "clsx";
-import { ToggleSwitch } from './ToggleSwitch';
-import { 
-  Play, 
+import { ToggleSwitch } from "./ToggleSwitch";
+import {
+  Play,
   Pause,
   RefreshCw,
   Heart,
@@ -10,7 +10,7 @@ import {
   Copy,
   Check,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
 } from "lucide-react";
 
 interface LogEntry {
@@ -62,30 +62,31 @@ export function LogViewer({
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef<boolean>(false);
-  
+
   // Use prop autoScroll if showControls is false, otherwise use local state
   const autoScroll = showControls ? autoScrollLocal : autoScrollProp;
 
   // Detect when user scrolls near the top to load more
   const handleScroll = useCallback(() => {
-    if (!listRef.current || !onLoadMore || !hasMore || loadingRef.current) return;
-    
+    if (!listRef.current || !onLoadMore || !hasMore || loadingRef.current)
+      return;
+
     const { scrollTop, scrollHeight } = listRef.current;
     const threshold = 100; // Load more when within 100px of top
-    
+
     if (scrollTop < threshold) {
       loadingRef.current = true;
-      
+
       // Save current scroll position and height
       const prevScrollHeight = scrollHeight;
       const prevScrollTop = scrollTop;
-      
+
       // Create a MutationObserver to detect when new items are added
       const observer = new MutationObserver(() => {
         if (listRef.current) {
           const newScrollHeight = listRef.current.scrollHeight;
           const newItemsHeight = newScrollHeight - prevScrollHeight;
-          
+
           // Only adjust if height actually changed (new items were added)
           if (newItemsHeight > 0) {
             // Adjust scroll position by the height of new items added at the top
@@ -95,29 +96,29 @@ export function LogViewer({
           }
         }
       });
-      
+
       // Start observing before loading
       if (listRef.current) {
         observer.observe(listRef.current, { childList: true, subtree: true });
       }
-      
+
       // Load more items
       onLoadMore().catch((err) => {
-        console.error('Error loading more:', err);
+        console.error("Error loading more:", err);
         observer.disconnect();
         loadingRef.current = false;
       });
     }
   }, [onLoadMore, hasMore]);
-  
+
   useEffect(() => {
     const container = listRef.current;
     if (container) {
-      container.addEventListener('scroll', handleScroll);
-      return () => container.removeEventListener('scroll', handleScroll);
+      container.addEventListener("scroll", handleScroll);
+      return () => container.removeEventListener("scroll", handleScroll);
     }
   }, [handleScroll]);
-  
+
   useEffect(() => {
     // Only auto-scroll when adding new messages at the bottom
     // Skip if we're currently loading more (pagination)
@@ -127,7 +128,7 @@ export function LogViewer({
       if (isNearTop) {
         return;
       }
-      
+
       if (!loadingRef.current) {
         listRef.current.scrollTop = listRef.current.scrollHeight;
       }
@@ -198,10 +199,12 @@ export function LogViewer({
         {isLoadingMore && (
           <div className="absolute top-0 left-0 right-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm p-2 flex items-center justify-center z-10">
             <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
-            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Loading older messages...</span>
+            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+              Loading older messages...
+            </span>
           </div>
         )}
-        
+
         {logs.length === 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             No log entries yet
@@ -209,9 +212,9 @@ export function LogViewer({
         ) : (
           <div className="space-y-4 max-w-4xl mx-auto">
             {[...logs].reverse().map((log) => {
-              const isUser = log.role === 'user' || log.status === 'user';
+              const isUser = log.role === "user" || log.status === "user";
               const isAssistant = !isUser;
-              
+
               return (
                 <div
                   key={log.id}
@@ -223,36 +226,41 @@ export function LogViewer({
                   {/* Message bubble */}
                   <div
                     className={clsx(
-                      "max-w-[66%] rounded-2xl px-4 py-3 relative",
-                      isUser ? (
-                        "bg-blue-600 text-white ml-12"
-                      ) : (
-                        "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 mr-12"
-                      ),
+                      "max-w-[80%] md:max-w-[66%] rounded-2xl px-4 py-3 relative",
+                      isUser
+                        ? "bg-blue-600 text-white ml-12 after:content-[''] after:absolute after:bottom-1 after:right-[-12px] after:w-3 after:h-3 after:bg-white dark:after:bg-gray-900 after:rounded-bl-[12px] before:content-[''] before:absolute before:bottom-1 before:-right-[5px] before:w-3 before:h-3 before:bg-blue-600 before:rounded-tl-[10px]"
+                        : "bg-gray-200 dark:bg-gray-800 border border-gray-200 dark:border-gray-900 mr-12 after:content-[''] after:absolute after:bottom-1 after:left-[-12px] after:w-3 after:h-3 after:bg-gray-50 dark:after:bg-gray-900 after:rounded-br-[12px] before:content-[''] before:absolute before:bottom-1 before:-left-[8px] before:w-3 before:h-3 before:bg-gray-200 dark:before:bg-gray-800 before:rounded-tr-[10px]",
                       {
-                        "shadow-lg shadow-green-500/20 animate-pulse": playingId === log.id && isAssistant,
+                        "shadow-lg shadow-green-500/20 animate-pulse":
+                          playingId === log.id && isAssistant,
                       }
                     )}
                   >
                     {/* Timestamp */}
-                    <div className={clsx(
-                      "text-xs mb-1",
-                      isUser ? "text-blue-100" : "text-gray-500 dark:text-gray-400"
-                    )}>
+                    <div
+                      className={clsx(
+                        "text-xs mb-1",
+                        isUser
+                          ? "text-blue-100"
+                          : "text-gray-500 dark:text-gray-400"
+                      )}
+                    >
                       {formatTimestamp(log.timestamp)}
                     </div>
-                    
+
                     {/* Message content */}
-                    <div 
+                    <div
                       className={clsx(
                         "text-sm",
-                        isUser ? "text-white" : "text-gray-900 dark:text-gray-100",
+                        isUser
+                          ? "text-white"
+                          : "text-gray-900 dark:text-gray-100",
                         expandedIds.has(log.id) ? "" : "line-clamp-3"
                       )}
                     >
                       {log.originalText}
                     </div>
-                    
+
                     {/* Action buttons */}
                     {(isAssistant || isUser) && (
                       <div className="flex gap-2 mt-2">
@@ -262,13 +270,25 @@ export function LogViewer({
                             e.stopPropagation();
                             handleCopy(log.originalText, log.id);
                           }}
-                          className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                          title={copiedId === log.id ? "Copied!" : "Copy message"}
-                        >
-                          {copiedId === log.id ? 
-                            <Check className="w-4 h-4 text-green-600 dark:text-green-400" /> : 
-                            <Copy className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                          className={clsx(
+                            "p-1.5 bg-transparent rounded transition-colors",
+                            isUser ? "hover:bg-blue-700" : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                          )}
+                          title={
+                            copiedId === log.id ? "Copied!" : "Copy message"
                           }
+                        >
+                          {copiedId === log.id ? (
+                            <Check className={clsx(
+                              "w-4 h-4",
+                              isUser ? "text-green-300" : "text-green-600 dark:text-green-400"
+                            )} />
+                          ) : (
+                            <Copy className={clsx(
+                              "w-4 h-4",
+                              isUser ? "text-white" : "text-gray-600 dark:text-gray-400"
+                            )} />
+                          )}
                         </button>
                         {isAssistant && (
                           <button
@@ -278,12 +298,17 @@ export function LogViewer({
                               toggleExpand(log.id);
                             }}
                             className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                            title={expandedIds.has(log.id) ? "Collapse details" : "Expand details"}
-                          >
-                            {expandedIds.has(log.id) ? 
-                              <ChevronUp className="w-4 h-4 text-gray-600 dark:text-gray-400" /> : 
-                              <ChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                            title={
+                              expandedIds.has(log.id)
+                                ? "Collapse details"
+                                : "Expand details"
                             }
+                          >
+                            {expandedIds.has(log.id) ? (
+                              <ChevronUp className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                            )}
                           </button>
                         )}
                         {isAssistant && onToggleFavorite && (
@@ -294,12 +319,17 @@ export function LogViewer({
                               onToggleFavorite(log.id);
                             }}
                             className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                            title={log.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                            title={
+                              log.isFavorite
+                                ? "Remove from favorites"
+                                : "Add to favorites"
+                            }
                           >
-                            <Heart 
+                            <Heart
                               className={clsx("w-4 h-4", {
                                 "fill-red-500 text-red-500": log.isFavorite,
-                                "text-gray-500 dark:text-gray-400": !log.isFavorite
+                                "text-gray-500 dark:text-gray-400":
+                                  !log.isFavorite,
                               })}
                             />
                           </button>
@@ -310,25 +340,30 @@ export function LogViewer({
                             onClick={(e) => {
                               e.stopPropagation();
                               if (playingId === log.id && onPause) {
-                                console.log(`[LogViewer] Pausing playback for log ID: ${log.id}`);
+                                console.log(
+                                  `[LogViewer] Pausing playback for log ID: ${log.id}`
+                                );
                                 onPause();
                               } else {
-                                console.log(`[LogViewer] Starting playback for log ID: ${log.id}`);
+                                console.log(
+                                  `[LogViewer] Starting playback for log ID: ${log.id}`
+                                );
                                 handlePlay(log.id);
                               }
                             }}
                             className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
                             title={playingId === log.id ? "Pause" : "Play"}
                           >
-                            {playingId === log.id ? 
-                              <Pause className="w-4 h-4 text-gray-600 dark:text-gray-400" /> : 
+                            {playingId === log.id ? (
+                              <Pause className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                            ) : (
                               <Play className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                            }
+                            )}
                           </button>
                         )}
                       </div>
                     )}
-                    
+
                     {/* Expanded details */}
                     {expandedIds.has(log.id) && isAssistant && (
                       <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
