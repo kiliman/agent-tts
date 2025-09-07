@@ -31,17 +31,31 @@ export class ClaudeCodeParser extends BaseParser {
         const data = JSON.parse(line);
         
         // Process both user and assistant messages
-        if (data.type === 'user' && data.message && 
-            data.message.role === 'user' && 
-            typeof data.message.content === 'string') {
-          // Parse user message - only if it has the proper structure
-          const timestamp = data.timestamp ? new Date(data.timestamp) : new Date();
-          messages.push({
-            role: 'user',
-            content: data.message.content,
-            timestamp,
-            cwd: data.cwd || cwd
-          });
+        if (data.type === 'user' && data.message && data.message.role === 'user') {
+          let content: string = '';
+          
+          if (typeof data.message.content === 'string') {
+            content = data.message.content;
+          } else if (Array.isArray(data.message.content)) {
+            // Extract text content from array (handle images, etc.)
+            const textParts: string[] = [];
+            for (const item of data.message.content) {
+              if (item && typeof item === 'object' && item.type === 'text' && item.text) {
+                textParts.push(item.text);
+              }
+            }
+            content = textParts.join('\n\n');
+          }
+          
+          if (content && content.trim()) {
+            const timestamp = data.timestamp ? new Date(data.timestamp) : new Date();
+            messages.push({
+              role: 'user',
+              content: content,
+              timestamp,
+              cwd: data.cwd || cwd
+            });
+          }
         } else if (data.type === 'assistant' && data.message) {
           // Process assistant message
           const message = data.message as Message;

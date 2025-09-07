@@ -31,28 +31,22 @@ function AppHeader({ connected }: { connected: boolean }) {
             </Link>
           )}
           <div className="flex items-center gap-2">
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              viewBox="0 0 40 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="1.8" 
-              strokeLinecap="round" 
+            <svg
+              viewBox="0 0 36.09 25.98"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
               strokeLinejoin="round"
               className="h-8 w-10 text-gray-700 dark:text-gray-300"
               aria-label="Agent TTS Logo"
             >
-              {/* Chat bubble with tail */}
-              <path d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-5l-3.5 3.5v-3.5H5a2 2 0 0 1-2-2V5z" />
-              
-              {/* Code symbol inside bubble - more spaced out */}
-              <path d="M8 7.5L5.5 10l2.5 2.5" />
-              <path d="M13 7.5l2.5 2.5L13 12.5" />
-              <path d="M10.5 6.5l-1 7" />
-              
-              {/* Sound waves - curved on the right side */}
-              <path d="M24 8c1.5 0 2.5 1 2.5 2s-1 2-2.5 2" fill="none" />
-              <path d="M28 6c2.5 0 4 2 4 4s-1.5 4-4 4" fill="none" />
+              <path d="M8.98,8.27l-4.59,3,4.59,3" />
+              <path d="M32.08,3.38c3.81,4.38,3.81,11.39,0,15.77" />
+              <path d="M29.52,7.33c1.91,2.19,1.91,5.7,0,7.88" />
+              <line x1="14.27" y1="6.96" x2="11.86" y2="15.74" />
+              <path d="M23.09,1H3.46c-1.28-.02-2.44,1.1-2.46,2.46v15.18c0,1.36,1.1,2.46,2.46,2.46h1.36v3.88l5.18-3.88h13.09c1.36,0,2.46-1.1,2.46-2.46V3.46c0-1.36-1.1-2.46-2.46-2.46Z" />
+              <path d="M17.14,14.27l4.59-3-4.59-3" />
             </svg>
             <h1 className="text-lg sm:text-xl font-semibold">Agent TTS</h1>
           </div>

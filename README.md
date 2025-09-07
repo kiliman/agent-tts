@@ -1,6 +1,6 @@
 # Agent TTS
 
-<img src="src/client/public/images/agent-tts.png" style="width:64px; height:64px;" alt="Agent TTS" />
+<img src="src/client/public/images/agent-tts.svg" style="padding: 0 8px; width:64px; height:64px; background-color: #fff; color: #000;" alt="Agent TTS" />
 
 Real-time text-to-speech for AI coding assistants. Talk with Claude, OpenCode, and other AI agents!
 
@@ -40,11 +40,13 @@ export default {
       model: "Grok Code Fast 1",
       modelIconUrl: "/images/grok.png",
       enabled: true,
-      watchPaths: ["~/.local/share/opencode/project/global/storage/session/message/**"],
-      parser: { 
+      watchPaths: [
+        "~/.local/share/opencode/project/global/storage/session/message/**",
+      ],
+      parser: {
         type: "opencode",
         name: "OpenCode",
-        iconUrl: "/images/opencode.png"
+        iconUrl: "/images/opencode.png",
       },
       filters: [],
       ttsService: {
@@ -56,11 +58,11 @@ export default {
         profileUrl: "/images/claudia-profile.png", // Profile background image
         options: {
           speed: 1.0,
-          responseFormat: "mp3"
-        }
-      }
-    }
-  ]
+          responseFormat: "mp3",
+        },
+      },
+    },
+  ],
 };
 ```
 
@@ -76,10 +78,10 @@ export default {
       modelIconUrl: "/images/claude.png",
       enabled: true,
       watchPaths: ["~/.claude/projects/**"],
-      parser: { 
+      parser: {
         type: "claude-code",
         name: "Claude Code",
-        iconUrl: "/images/claude-code.png"
+        iconUrl: "/images/claude-code.png",
       },
       filters: [],
       ttsService: {
@@ -92,11 +94,11 @@ export default {
         profileUrl: "/images/claudia-profile.png", // Profile background image
         options: {
           stability: 0.5,
-          similarityBoost: 0.75
-        }
-      }
-    }
-  ]
+          similarityBoost: 0.75,
+        },
+      },
+    },
+  ],
 };
 ```
 
@@ -153,16 +155,16 @@ filters: [
     enabled: true,
     options: {
       // Override defaults
-      "git": "get",          // Instead of default "ghit"
-      
+      git: "get", // Instead of default "ghit"
+
       // Add your own
-      "beehiiv": "bee hive",
-      "anthropic": "ann throw pick",
-      "kubectl": "cube control",
-      "k8s": "kubernetes"
-    }
-  }
-]
+      beehiiv: "bee hive",
+      anthropic: "ann throw pick",
+      kubectl: "cube control",
+      k8s: "kubernetes",
+    },
+  },
+];
 ```
 
 See `examples/config-with-pronunciation.js` for a complete example.
@@ -181,7 +183,7 @@ See `examples/config-with-pronunciation.js` for a complete example.
 
 - **Dashboard**: Overview of all profiles with latest messages
 - **Profile Pages**: Dedicated pages for each profile (e.g., `/claudia`, `/opencode`)
-- **URL Parameters**: 
+- **URL Parameters**:
   - `?favorites` - Show only favorite messages
   - `?cwd=/path/to/project` - Filter by project directory
 
