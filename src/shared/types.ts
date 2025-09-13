@@ -22,6 +22,7 @@ export interface TTSLogEntry {
   ttsMessage: string;
   elapsed: number;
   cwd?: string; // current working directory
+  role?: "user" | "assistant"; // Track the role for proper display
 }
 
 export type FilterFunction = (text: string) => string;

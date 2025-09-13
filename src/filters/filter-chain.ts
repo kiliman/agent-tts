@@ -16,8 +16,18 @@ export class FilterChain {
   }
 
   private initializeFilters(filterConfigs: FilterConfig[]): void {
+    // Always start with default filters
+    this.filters.push(new RoleFilter(["assistant"]));
+    this.filters.push(new MarkdownFilter());
+    this.filters.push(new UrlFilter());
+    this.filters.push(new EmojiFilter());
+    this.filters.push(new FilepathFilter());
+    this.filters.push(new PronunciationFilter());
+
+    // Apply user configurations to enhance/modify default filters
     for (const config of filterConfigs) {
       if (config.filter) {
+        // Custom filter - add it
         const customFilter = new CustomFilter(
           config.name,
           config.filter,
@@ -25,24 +35,31 @@ export class FilterChain {
         );
         this.filters.push(customFilter);
       } else {
-        const builtInFilter = this.createBuiltInFilter(
-          config.name,
-          config.enabled ?? true,
-          config.options
-        );
-        if (builtInFilter) {
-          this.filters.push(builtInFilter);
+        // Built-in filter - find existing one and apply config
+        const existingFilter = this.filters.find(f => f.getName() === config.name);
+        if (existingFilter) {
+          // Configure existing filter
+          existingFilter.setEnabled(config.enabled ?? true);
+          
+          // Apply options if it's a pronunciation filter
+          if (config.name === "pronunciation" && config.options) {
+            const pronFilter = existingFilter as PronunciationFilter;
+            for (const [key, value] of Object.entries(config.options)) {
+              pronFilter.addReplacement(key, value as string);
+            }
+          }
+        } else {
+          // Unknown built-in filter - try to create it (for future extensibility)
+          const builtInFilter = this.createBuiltInFilter(
+            config.name,
+            config.enabled ?? true,
+            config.options
+          );
+          if (builtInFilter) {
+            this.filters.push(builtInFilter);
+          }
         }
       }
-    }
-
-    if (this.filters.length === 0) {
-      this.filters.push(new RoleFilter(["assistant"]));
-      this.filters.push(new MarkdownFilter());
-      this.filters.push(new UrlFilter());
-      this.filters.push(new EmojiFilter());
-      this.filters.push(new FilepathFilter());
-      this.filters.push(new PronunciationFilter());
     }
   }
 
@@ -52,40 +69,47 @@ export class FilterChain {
     options?: any
   ): BaseFilter | null {
     switch (name) {
-      case "pronunciation":
+      case "pronunciation": {
         const pronunciationFilter = new PronunciationFilter(options);
         pronunciationFilter.setEnabled(enabled);
         return pronunciationFilter;
+      }
 
-      case "length":
+      case "length": {
         const lengthFilter = new LengthFilter();
         lengthFilter.setEnabled(enabled);
         return lengthFilter;
+      }
 
-      case "role":
+      case "role": {
         const roleFilter = new RoleFilter();
         roleFilter.setEnabled(enabled);
         return roleFilter;
+      }
 
-      case "emoji":
+      case "emoji": {
         const emojiFilter = new EmojiFilter();
         emojiFilter.setEnabled(enabled);
         return emojiFilter;
+      }
 
-      case "url":
+      case "url": {
         const urlFilter = new UrlFilter();
         urlFilter.setEnabled(enabled);
         return urlFilter;
+      }
 
-      case "filepath":
+      case "filepath": {
         const filepathFilter = new FilepathFilter();
         filepathFilter.setEnabled(enabled);
         return filepathFilter;
+      }
 
-      case "markdown":
+      case "markdown": {
         const markdownFilter = new MarkdownFilter();
         markdownFilter.setEnabled(enabled);
         return markdownFilter;
+      }
 
       default:
         return null;
