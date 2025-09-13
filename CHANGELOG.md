@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2025-09-13
+
+### ✨ Features
+- ✨ Add user message capture and chat-style UI with proper user/assistant distinction
+- ✨ Add copy button and improve text selection in chat UI for better usability
+- ✨ Enhance UI with speech bubble tails and mobile responsiveness for polished appearance
+
+### 🐛 Fixes
+- 🐛 Improve filter system to always include defaults with user enhancement (prevents markdown characters being spoken)
+- 🐛 Remove escape backslashes from user messages in chat view for cleaner display
+- 🐛 Handle array content in Claude Code parser user messages for better parsing
+- 🐛 Improve OpenCode timestamp handling and add database regeneration script
+
+### ♻️ Refactoring
+- ♻️ Pronunciation filter now properly merges custom options with defaults instead of replacing them
+- ♻️ Filter configuration system now extends defaults rather than requiring full specification
+
+**Version bump**: Minor release (0.5.1 → 0.6.0) - New UI features including chat-style interface, copy functionality, and improved mobile experience. Filter system improvements ensure better user experience by always including essential filters like markdown processing.
+
 ## [0.5.1] - 2025-09-03
 
 ### 🐛 Fixes
