@@ -258,7 +258,7 @@ export function LogViewer({
                         expandedIds.has(log.id) ? "" : "line-clamp-3"
                       )}
                     >
-                      {log.originalText}
+                      {isUser ? log.originalText.replace(/\\\n/g, '\n') : log.originalText}
                     </div>
 
                     {/* Action buttons */}
