@@ -35,6 +35,9 @@
     "start:prod": "NODE_ENV=production npm run start",
     "preview": "npm run build && npm run start",
     "clean": "rimraf dist",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
     "db:regenerate": "tsx scripts/regenerate-db.ts"
@@ -60,6 +63,7 @@
     "@typescript-eslint/eslint-plugin": "^6.18.1",
     "@typescript-eslint/parser": "^6.18.1",
     "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/ui": "^3.2.4",
     "concurrently": "^8.2.2",
     "dotenv": "^17.2.1",
     "eslint": "^8.56.0",
@@ -70,7 +74,8 @@
     "tailwindcss": "^4.1.12",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3",
-    "vite": "^5.0.11"
+    "vite": "^5.0.11",
+    "vitest": "^3.2.4"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.60.0",
