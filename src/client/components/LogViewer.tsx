@@ -290,27 +290,34 @@ export function LogViewer({
                             )} />
                           )}
                         </button>
-                        {isAssistant && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleExpand(log.id);
-                            }}
-                            className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                            title={
-                              expandedIds.has(log.id)
-                                ? "Collapse details"
-                                : "Expand details"
-                            }
-                          >
-                            {expandedIds.has(log.id) ? (
-                              <ChevronUp className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                            )}
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleExpand(log.id);
+                          }}
+                          className={clsx(
+                            "p-1.5 bg-transparent rounded transition-colors",
+                            isUser ? "hover:bg-blue-700" : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                          )}
+                          title={
+                            expandedIds.has(log.id)
+                              ? "Collapse details"
+                              : "Expand details"
+                          }
+                        >
+                          {expandedIds.has(log.id) ? (
+                            <ChevronUp className={clsx(
+                              "w-4 h-4",
+                              isUser ? "text-white" : "text-gray-600 dark:text-gray-400"
+                            )} />
+                          ) : (
+                            <ChevronDown className={clsx(
+                              "w-4 h-4",
+                              isUser ? "text-white" : "text-gray-600 dark:text-gray-400"
+                            )} />
+                          )}
+                        </button>
                         {isAssistant && onToggleFavorite && (
                           <button
                             type="button"
@@ -365,22 +372,53 @@ export function LogViewer({
                     )}
 
                     {/* Expanded details */}
-                    {expandedIds.has(log.id) && isAssistant && (
-                      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-                        <div className="mt-2">
-                          <strong className="block mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase">
-                            Filtered Text (Sent to TTS):
-                          </strong>
-                          <pre className="bg-gray-100 dark:bg-gray-900 p-2 rounded text-xs font-mono whitespace-pre-wrap break-words overflow-x-auto">
-                            {log.filteredText}
-                          </pre>
-                        </div>
-                        {log.cwd && (
+                    {expandedIds.has(log.id) && (
+                      <div className={clsx(
+                        "mt-3 pt-3",
+                        isUser
+                          ? "border-t border-blue-400"
+                          : "border-t border-gray-200 dark:border-gray-600"
+                      )}>
+                        {isAssistant && (
                           <div className="mt-2">
                             <strong className="block mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase">
+                              Filtered Text (Sent to TTS):
+                            </strong>
+                            <pre className="bg-gray-100 dark:bg-gray-900 p-2 rounded text-xs font-mono whitespace-pre-wrap break-words overflow-x-auto">
+                              {log.filteredText}
+                            </pre>
+                          </div>
+                        )}
+                        {isUser && (
+                          <div className="mt-2">
+                            <strong className={clsx(
+                              "block mb-1 text-xs uppercase",
+                              isUser ? "text-blue-200" : "text-gray-500 dark:text-gray-400"
+                            )}>
+                              Full Message:
+                            </strong>
+                            <pre className={clsx(
+                              "p-2 rounded text-xs font-mono whitespace-pre-wrap break-words overflow-x-auto",
+                              isUser
+                                ? "bg-blue-700 text-blue-100"
+                                : "bg-gray-100 dark:bg-gray-900"
+                            )}>
+                              {log.originalText.replace(/\\\n/g, '\n')}
+                            </pre>
+                          </div>
+                        )}
+                        {log.cwd && (
+                          <div className="mt-2">
+                            <strong className={clsx(
+                              "block mb-1 text-xs uppercase",
+                              isUser ? "text-blue-200" : "text-gray-500 dark:text-gray-400"
+                            )}>
                               Project:
                             </strong>
-                            <span className="text-xs font-mono">{log.cwd}</span>
+                            <span className={clsx(
+                              "text-xs font-mono",
+                              isUser ? "text-blue-100" : ""
+                            )}>{log.cwd}</span>
                           </div>
                         )}
                       </div>
