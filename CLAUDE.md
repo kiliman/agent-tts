@@ -192,6 +192,12 @@ npm run build
 # Start production server
 npm run start:prod
 
+# Start with CLI (recommended for background service)
+agent-tts --server --client  # Both with hot reload
+agent-tts --server            # Backend only
+agent-tts --client            # Frontend only
+agent-tts                     # Production mode (serves built frontend)
+
 # Run tests
 npm run test
 
@@ -202,11 +208,35 @@ npm run test:ui
 npm run test:run
 ```
 
+## CLI Options
+
+The `agent-tts` command supports the following flags:
+
+- `--server` - Run only the backend server
+- `--client` - Run only the frontend dev server (Vite)
+- `--help` or `-h` - Show help message
+
+If no flags are specified, both server and client run in production mode (serves built frontend).
+
+## Configuration
+
 Environment variables:
 
 - `PORT` - Server port (default: 3456)
+- `CLIENT_PORT` - Client dev server port (default: 5173)
 - `HOST` - Server host (default: localhost)
 - `NODE_ENV` - Environment (development/production)
+
+Config file options:
+
+```typescript
+{
+  serverPort?: number;    // Backend API port (default: 3456)
+  clientPort?: number;    // Frontend dev server port (default: 5173)
+  profiles: ProfileConfig[];
+  // ... other config options
+}
+```
 
 ## Key Implementation Details
 

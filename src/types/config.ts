@@ -61,6 +61,8 @@ export interface AgentTTSConfig {
   muted?: boolean;
   databasePath?: string;
   configPath?: string;
+  serverPort?: number; // Backend API server port (default: 3456)
+  clientPort?: number; // Frontend dev server port (default: 5173)
 }
 
 export interface FileState {

@@ -2,9 +2,9 @@ import { EventEmitter } from 'events';
 import chokidar from 'chokidar';
 import fs from 'fs';
 import path from 'path';
-import { AppConfig, ProfileConfig } from '../shared/types';
-import { FileStateRepository } from '../database/file-states';
-import { SettingsRepository } from '../database/settings';
+import { AppConfig, ProfileConfig } from '../shared/types.js';
+import { FileStateRepository } from '../database/file-states.js';
+import { SettingsRepository } from '../database/settings.js';
 import { ChangeProcessor } from './change-processor';
 
 export interface FileChange {

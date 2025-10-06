@@ -1,7 +1,7 @@
-import { BaseParser } from './base-parser';
-import { ClaudeCodeParser } from './claude-code-parser';
-import { OpenCodeParser } from './opencode-parser';
-import { ParserConfig, ParsedMessage } from '../types/config';
+import { BaseParser } from './base-parser.js';
+import { ClaudeCodeParser } from './claude-code-parser.js';
+import { OpenCodeParser } from './opencode-parser.js';
+import { ParserConfig, ParsedMessage } from '../types/config.js';
 
 export class ParserFactory {
   static createParser(config: ParserConfig): BaseParser {

@@ -1,4 +1,4 @@
-import { ParsedMessage } from '../types/config';
+import { ParsedMessage } from '../types/config.js';
 
 export type LogMode = 'append' | 'new';
 

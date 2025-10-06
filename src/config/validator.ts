@@ -1,4 +1,4 @@
-import { AppConfig, ProfileConfig, TTSServiceConfig, PronunciationRule } from '../shared/types';
+import { AppConfig, ProfileConfig, TTSServiceConfig, PronunciationRule } from '../shared/types.js';
 
 export function validateConfig(config: any): string | null {
   if (!config || typeof config !== 'object') {

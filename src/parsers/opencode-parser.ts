@@ -1,5 +1,5 @@
-import { BaseParser } from "./base-parser";
-import { ParsedMessage } from "../types/config";
+import { BaseParser } from "./base-parser.js";
+import { ParsedMessage } from "../types/config.js";
 import * as fs from "fs";
 import * as path from "path";
 

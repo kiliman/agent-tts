@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
-import { AppConfig } from '../shared/types';
+import { AppConfig } from '../shared/types.js';
 import { FileChange } from './file-watcher';
-import { TTSLogRepository } from '../database/tts-log';
+import { TTSLogRepository } from '../database/tts-log.js';
 
 export class ChangeProcessor extends EventEmitter {
   private config: AppConfig;

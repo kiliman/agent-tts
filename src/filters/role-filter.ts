@@ -1,5 +1,5 @@
-import { BaseFilter } from './base-filter';
-import { ParsedMessage } from '../types/config';
+import { BaseFilter } from './base-filter.js';
+import { ParsedMessage } from '../types/config.js';
 
 export class RoleFilter extends BaseFilter {
   private allowedRoles: Set<string>;

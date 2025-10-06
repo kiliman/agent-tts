@@ -1,5 +1,5 @@
-import { BaseParser, LogMode } from './base-parser';
-import { ParsedMessage } from '../types/config';
+import { BaseParser, LogMode } from './base-parser.js';
+import { ParsedMessage } from '../types/config.js';
 import type { Message, TextBlock } from '@anthropic-ai/sdk/resources/messages';
 
 export class ClaudeCodeParser extends BaseParser {

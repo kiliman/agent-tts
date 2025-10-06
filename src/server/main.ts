@@ -5,6 +5,7 @@ import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { spawn } from 'child_process';
 import { initializeDatabase } from '../database/schema.js';
 import { ConfigLoader } from '../config/loader.js';
 import { AppCoordinator } from '../services/app-coordinator.js';
@@ -16,11 +17,18 @@ import { AGENT_TTS_PATHS } from '../utils/xdg-paths.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = process.env.PORT || 3456;
+const PORT = parseInt(process.env.PORT || '3456');
+const CLIENT_PORT = parseInt(process.env.CLIENT_PORT || '5173');
 const HOST = process.env.HOST || 'localhost';
+
+// Check which services to run
+const RUN_SERVER = process.env.RUN_SERVER === 'true';
+const RUN_CLIENT = process.env.RUN_CLIENT === 'true';
 
 let configLoader: ConfigLoader | null = null;
 let appCoordinator: AppCoordinator | null = null;
+let serverPort = PORT;
+let clientPortToUse = CLIENT_PORT;
 
 async function startServer() {
   try {
@@ -36,14 +44,18 @@ async function startServer() {
     configLoader = new ConfigLoader();
     const config = await configLoader.load();
 
+    if (!config) {
+      throw new Error('Failed to load configuration');
+    }
+
+    // Use ports from config if specified
+    serverPort = config.serverPort || PORT;
+    clientPortToUse = config.clientPort || CLIENT_PORT;
+
     // Initialize app coordinator
     console.log('Starting app coordinator...');
     appCoordinator = new AppCoordinator();
-    if (config) {
-      await appCoordinator.initialize(config);
-    } else {
-      throw new Error('Failed to load configuration');
-    }
+    await appCoordinator.initialize(config);
 
     // Create Express app
     const app = express();
@@ -145,13 +157,13 @@ async function startServer() {
     console.log('Watching for configuration changes...');
 
     // Start server
-    server.listen(PORT, () => {
-      console.log(`Agent TTS server running at http://${HOST}:${PORT}`);
+    server.listen(serverPort, () => {
+      console.log(`Agent TTS server running at http://${HOST}:${serverPort}`);
       if (clientBuildExists) {
-        console.log(`Web UI available at http://${HOST}:${PORT}`);
+        console.log(`Web UI available at http://${HOST}:${serverPort}`);
       } else {
         console.log(`Web UI not built yet. Run 'npm run build:client' to build the frontend.`);
-        console.log(`For hot reload development, use 'npm run dev:separate' instead.`);
+        console.log(`For hot reload development, use 'npm run dev:separate' or 'agent-tts --server --client' instead.`);
       }
     });
 
@@ -182,5 +194,58 @@ async function startServer() {
   }
 }
 
-// Start the server
-startServer();
+// Determine which services to run
+// In development (when run via npm run dev), run both by default
+// In production (via CLI), the bin script handles defaults
+const isDevelopment = process.env.NODE_ENV !== 'production';
+const shouldRunServer = RUN_SERVER || (!RUN_SERVER && !RUN_CLIENT && isDevelopment);
+const shouldRunClient = RUN_CLIENT || (!RUN_SERVER && !RUN_CLIENT && isDevelopment);
+
+// Start client dev server if needed
+let viteProcess: ReturnType<typeof spawn> | null = null;
+if (shouldRunClient) {
+  startClientDevServer();
+}
+
+// Start backend server if needed
+if (shouldRunServer) {
+  startServer();
+}
+
+function startClientDevServer() {
+  console.log(`Starting Vite dev server on port ${clientPortToUse}...`);
+
+  // Find the project root (where package.json is)
+  const projectRoot = path.join(__dirname, '../..');
+
+  viteProcess = spawn('npm', ['run', 'dev:client'], {
+    cwd: projectRoot,
+    stdio: 'inherit',
+    shell: true,
+    env: {
+      ...process.env,
+      VITE_PORT: clientPortToUse.toString(),
+    }
+  });
+
+  viteProcess.on('error', (error: Error) => {
+    console.error('Failed to start Vite dev server:', error);
+  });
+
+  viteProcess.on('exit', (code: number) => {
+    console.log(`Vite dev server exited with code ${code}`);
+  });
+
+  // Handle graceful shutdown
+  process.on('SIGTERM', () => {
+    if (viteProcess) {
+      viteProcess.kill('SIGTERM');
+    }
+  });
+
+  process.on('SIGINT', () => {
+    if (viteProcess) {
+      viteProcess.kill('SIGINT');
+    }
+  });
+}

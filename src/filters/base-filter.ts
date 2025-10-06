@@ -1,4 +1,4 @@
-import { ParsedMessage } from '../types/config';
+import { ParsedMessage } from '../types/config.js';
 
 export abstract class BaseFilter {
   constructor(protected name: string, protected enabled: boolean = true) {}

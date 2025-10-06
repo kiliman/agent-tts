@@ -105,10 +105,49 @@ export default {
 2. Start the service:
 
 ```bash
+# Run in production mode (serves built frontend)
 agent-tts
+
+# Run only the backend server
+agent-tts --server
+
+# Run only the frontend dev server
+agent-tts --client
+
+# Run both in development mode with hot reload
+agent-tts --server --client
 ```
 
 3. Open your browser to `http://localhost:3456`
+
+## CLI Options
+
+```
+Usage: agent-tts [options]
+
+Options:
+  --server    Run only the backend server
+  --client    Run only the frontend development server
+  --help, -h  Show this help message
+
+Environment Variables:
+  PORT        Server port (default: 3456)
+  CLIENT_PORT Client dev server port (default: 5173)
+  HOST        Server host (default: localhost)
+  NODE_ENV    Environment (development/production)
+```
+
+You can also configure ports in your config file:
+
+```javascript
+export default {
+  serverPort: 3456,  // Backend API port
+  clientPort: 5173,  // Frontend dev server port
+  profiles: [
+    // ... your profiles
+  ],
+};
+```
 
 ## Configuration
 

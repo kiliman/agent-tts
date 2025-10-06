@@ -1,4 +1,4 @@
-import { ParsedMessage } from '../types/config';
+import { ParsedMessage } from '../types/config.js';
 
 export const markdownCleaner = (message: ParsedMessage): ParsedMessage | null => {
   const cleaned = message.content

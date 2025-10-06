@@ -1,8 +1,8 @@
 import { EventEmitter } from 'events';
-import { ProfileConfig, ParsedMessage, TTSQueueEntry } from '../types/config';
+import { ProfileConfig, ParsedMessage, TTSQueueEntry } from '../types/config.js';
 import { FileChange } from './file-monitor';
-import { ParserFactory } from '../parsers/parser-factory';
-import { FilterChain } from '../filters/filter-chain';
+import { ParserFactory } from '../parsers/parser-factory.js';
+import { FilterChain } from '../filters/filter-chain.js';
 import { DatabaseManager } from './database';
 
 export class MessageProcessor extends EventEmitter {

@@ -3,9 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import chokidar from 'chokidar';
 import * as tsBlankSpace from 'ts-blank-space';
-import { AgentTTSConfig } from '../types/config';
+import { AgentTTSConfig } from '../types/config.js';
 import { validateConfig } from './validator';
-import { AGENT_TTS_PATHS } from '../utils/xdg-paths';
+import { AGENT_TTS_PATHS } from '../utils/xdg-paths.js';
 
 export class ConfigLoader extends EventEmitter {
   private configDir: string;

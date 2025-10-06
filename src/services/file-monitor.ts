@@ -1,9 +1,9 @@
 import { EventEmitter } from 'events';
 import { watch, FSWatcher } from 'chokidar';
 import { readFileSync, statSync, existsSync } from 'fs';
-import { ProfileConfig, ParsedMessage, FileState } from '../types/config';
-import { DatabaseManager } from './database';
-import { ParserFactory } from '../parsers/parser-factory';
+import { ProfileConfig, ParsedMessage, FileState } from '../types/config.js';
+import { DatabaseManager } from './database.js';
+import { ParserFactory } from '../parsers/parser-factory.js';
 
 export interface FileChange {
   filepath: string;

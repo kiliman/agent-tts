@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
-import { AGENT_TTS_PATHS } from '../../utils/xdg-paths';
+import { AGENT_TTS_PATHS } from '../../utils/xdg-paths.js';
 
 export abstract class BaseTTSService {
   protected apiKey: string;
