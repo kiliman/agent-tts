@@ -10,8 +10,9 @@ import Database from 'better-sqlite3';
 import * as fs from 'fs';
 import * as path from 'path';
 import { homedir } from 'os';
+import { AGENT_TTS_PATHS } from '../utils/xdg-paths.js';
 
-const DB_PATH = path.join(homedir(), '.agent-tts', 'agent-tts.db');
+const DB_PATH = path.join(AGENT_TTS_PATHS.state, 'agent-tts.db');
 
 function migrateCwdField() {
   console.log('[Migration] Starting cwd backfill migration...');

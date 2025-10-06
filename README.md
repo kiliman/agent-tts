@@ -27,7 +27,7 @@ npm install -g agent-tts
 
 ## Quick Start
 
-1. Create a configuration file at `~/.agent-tts/index.js`:
+1. Create a configuration file at `~/.config/agent-tts/config.js`:
 
 ### Using Kokoro (Free, Local)
 

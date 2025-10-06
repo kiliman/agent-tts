@@ -5,13 +5,13 @@ import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-import os from 'os';
 import { initializeDatabase } from '../database/schema.js';
 import { ConfigLoader } from '../config/loader.js';
 import { AppCoordinator } from '../services/app-coordinator.js';
 import { setupApiRoutes } from './api/index.js';
 import { setupWebSocket } from './websocket.js';
 import { replaceConsoleWithLogger } from '../services/logger.js';
+import { AGENT_TTS_PATHS } from '../utils/xdg-paths.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,7 +57,7 @@ async function startServer() {
     setupApiRoutes(app, appCoordinator);
 
     // Serve images with priority: user images first, then public images as fallback
-    const userImagesPath = path.join(os.homedir(), '.agent-tts', 'images');
+    const userImagesPath = path.join(AGENT_TTS_PATHS.config, 'images');
     if (!fs.existsSync(userImagesPath)) {
       // Create the directory if it doesn't exist
       fs.mkdirSync(userImagesPath, { recursive: true });

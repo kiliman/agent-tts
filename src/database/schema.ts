@@ -1,15 +1,15 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import os from 'os';
+import { AGENT_TTS_PATHS } from '../utils/xdg-paths.js';
 
 let db: Database.Database | null = null;
 
 export function initializeDatabase(): Database.Database {
-  // Use ~/.agent-tts directory for consistency
-  const userDataPath = path.join(os.homedir(), '.agent-tts');
+  // Use XDG_STATE_HOME for database (state/logs)
+  const userDataPath = AGENT_TTS_PATHS.state;
   const dbPath = path.join(userDataPath, 'agent-tts.db');
-  
+
   // Ensure directory exists
   if (!fs.existsSync(userDataPath)) {
     fs.mkdirSync(userDataPath, { recursive: true });

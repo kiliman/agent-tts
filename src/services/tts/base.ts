@@ -1,21 +1,21 @@
 import { mkdir, writeFile } from 'fs/promises';
 import { join } from 'path';
-import { homedir } from 'os';
 import { existsSync } from 'fs';
+import { AGENT_TTS_PATHS } from '../../utils/xdg-paths';
 
 export abstract class BaseTTSService {
   protected apiKey: string;
-  
+
   constructor(protected config: any) {
     this.apiKey = config.apiKey || '';
   }
-  
+
   abstract tts(text: string, metadata?: { profile?: string; timestamp?: Date }): Promise<string>;
   abstract isAvailable(): boolean;
-  
+
   protected async getAudioFilePath(profile: string, timestamp: Date, extension: string = 'mp3'): Promise<string> {
-    // Create directory structure: ~/.agent-tts/audio/YYYY-MM-DD/
-    const audioBaseDir = join(homedir(), '.agent-tts', 'audio');
+    // Create directory structure: ~/.cache/agent-tts/audio/YYYY-MM-DD/
+    const audioBaseDir = join(AGENT_TTS_PATHS.cache, 'audio');
     const dateStr = timestamp.toISOString().split('T')[0]; // YYYY-MM-DD
     const audioDir = join(audioBaseDir, dateStr);
     

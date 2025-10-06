@@ -1,6 +1,6 @@
 import { appendFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
-import { homedir } from 'os';
+import { AGENT_TTS_PATHS } from '../utils/xdg-paths.js';
 
 // Store original console methods before replacement
 const originalConsole = {
@@ -30,7 +30,7 @@ class Logger {
   private currentDate: string | null = null;
 
   constructor() {
-    this.logDir = join(homedir(), '.agent-tts', 'logs');
+    this.logDir = join(AGENT_TTS_PATHS.state, 'logs');
     this.ensureLogFile();
   }
 

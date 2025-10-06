@@ -5,8 +5,8 @@ import { TTSServiceFactory } from './tts/factory.js';
 import { BaseTTSService } from './tts/base.js';
 import { AudioPlayer } from './audio-player.js';
 import { join } from 'path';
-import { homedir } from 'os';
 import { existsSync } from 'fs';
+import { AGENT_TTS_PATHS } from '../utils/xdg-paths.js';
 
 export interface QueuedMessage extends TTSQueueEntry {
   profileConfig: ProfileConfig;
@@ -83,7 +83,7 @@ export class TTSQueueProcessor extends EventEmitter {
   private getAudioFilePath(profile: string, timestamp: Date): string {
     const dateStr = timestamp.toISOString().split('T')[0]; // YYYY-MM-DD
     const epochTimestamp = Math.floor(timestamp.getTime() / 1000);
-    const audioDir = join(homedir(), '.agent-tts', 'audio', dateStr);
+    const audioDir = join(AGENT_TTS_PATHS.cache, 'audio', dateStr);
     return join(audioDir, `${profile}-${epochTimestamp}.mp3`);
   }
   

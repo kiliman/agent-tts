@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2025-10-06
+
+### ✨ Features
+- ✨ Adopt XDG Base Directory Specification for organized file storage
+  - Config: `~/.config/agent-tts/` (or `$XDG_CONFIG_HOME/agent-tts/`)
+  - State/DB: `~/.local/state/agent-tts/` (or `$XDG_STATE_HOME/agent-tts/`)
+  - Cache: `~/.cache/agent-tts/` (or `$XDG_CACHE_HOME/agent-tts/`)
+- ✨ Rename configuration file from `index.{js,ts}` to `config.{js,ts}` for clarity
+- ✨ Add migration script (`scripts/migrate-to-xdg.sh`) to automatically move existing data
+- ✨ Add expand functionality for user messages in log viewer
+
+### 🐛 Fixes
+- 🐛 Filter out subagent tool result messages from TTS to prevent verbose agent responses
+- 🐛 Enhance Claude Code parser to filter command messages and meta content
+
+### 📝 Documentation
+- 📝 Add XDG Base Directory Specification section to documentation
+- 📝 Update all file path references throughout documentation
+
+### ♻️ Refactoring
+- ♻️ Create centralized XDG paths utility module for consistent path handling
+- ♻️ Config loader now supports both legacy (`index.{js,ts}`) and new (`config.{js,ts}`) filenames with deprecation warnings
+
+**Version bump**: Minor release (0.6.0 → 0.7.0) - Breaking change in default file locations following XDG Base Directory Specification. Automatic migration script provided for seamless upgrade. Improved TTS filtering to exclude subagent responses.
+
 ## [0.6.0] - 2025-09-13
 
 ### ✨ Features

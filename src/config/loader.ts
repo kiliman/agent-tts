@@ -1,11 +1,11 @@
 import { EventEmitter } from 'events';
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
 import chokidar from 'chokidar';
 import * as tsBlankSpace from 'ts-blank-space';
 import { AgentTTSConfig } from '../types/config';
 import { validateConfig } from './validator';
+import { AGENT_TTS_PATHS } from '../utils/xdg-paths';
 
 export class ConfigLoader extends EventEmitter {
   private configDir: string;
@@ -17,7 +17,7 @@ export class ConfigLoader extends EventEmitter {
 
   constructor(configDir?: string) {
     super();
-    this.configDir = configDir || path.join(os.homedir(), '.agent-tts');
+    this.configDir = configDir || AGENT_TTS_PATHS.config;
   }
 
   async load(): Promise<AgentTTSConfig | null> {
@@ -25,16 +25,24 @@ export class ConfigLoader extends EventEmitter {
     this.isLoading = true;
 
     try {
-      // Find config file (index.ts or index.js)
-      const tsPath = path.join(this.configDir, 'index.ts');
-      const jsPath = path.join(this.configDir, 'index.js');
-      
-      if (fs.existsSync(tsPath)) {
-        this.configPath = tsPath;
-      } else if (fs.existsSync(jsPath)) {
-        this.configPath = jsPath;
+      // Find config file (config.ts, config.js, or legacy index.ts/index.js)
+      const configTsPath = path.join(this.configDir, 'config.ts');
+      const configJsPath = path.join(this.configDir, 'config.js');
+      const indexTsPath = path.join(this.configDir, 'index.ts');
+      const indexJsPath = path.join(this.configDir, 'index.js');
+
+      if (fs.existsSync(configTsPath)) {
+        this.configPath = configTsPath;
+      } else if (fs.existsSync(configJsPath)) {
+        this.configPath = configJsPath;
+      } else if (fs.existsSync(indexTsPath)) {
+        this.configPath = indexTsPath;
+        console.log('[Config] Warning: Using legacy index.ts, consider renaming to config.ts');
+      } else if (fs.existsSync(indexJsPath)) {
+        this.configPath = indexJsPath;
+        console.log('[Config] Warning: Using legacy index.js, consider renaming to config.js');
       } else {
-        this.lastError = `No configuration file found at ${this.configDir}/index.{ts,js}`;
+        this.lastError = `No configuration file found at ${this.configDir}/config.{ts,js}`;
         return null;
       }
 
@@ -139,7 +147,12 @@ export class ConfigLoader extends EventEmitter {
 
     this.watcher.on('add', async (addedPath) => {
       // Handle new config file being created
-      if (!this.configPath && (addedPath.endsWith('index.ts') || addedPath.endsWith('index.js'))) {
+      if (!this.configPath && (
+        addedPath.endsWith('config.ts') ||
+        addedPath.endsWith('config.js') ||
+        addedPath.endsWith('index.ts') ||
+        addedPath.endsWith('index.js')
+      )) {
         await this.reloadConfig();
       }
     });

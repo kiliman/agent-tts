@@ -16,7 +16,7 @@ The application runs as a unified service on a single port (default: 3456), serv
 
 Configuration files are JavaScript/TypeScript files with default exports. Users can extend configurations by importing other config files and using spread operators.
 
-Default configuration location: `~/.agent-tts/index.{js,ts}`
+Default configuration location: `~/.config/agent-tts/config.{js,ts}`
 
 Configuration features:
 
@@ -25,9 +25,23 @@ Configuration features:
 - TypeScript support via `ts-blank-space` for type erasure
 - Profile-based configuration for different agents
 
+## File Locations (XDG Base Directory Specification)
+
+The application follows the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/latest/) for organizing user files:
+
+- **Configuration**: `~/.config/agent-tts/` (or `$XDG_CONFIG_HOME/agent-tts/`)
+  - `config.{js,ts}` - Main configuration file
+  - `images/` - Custom avatar images
+- **State/Database**: `~/.local/state/agent-tts/` (or `$XDG_STATE_HOME/agent-tts/`)
+  - `agent-tts.db` - SQLite database
+  - `logs/` - Application logs
+  - `backups/` - Database backups
+- **Cache**: `~/.cache/agent-tts/` (or `$XDG_CACHE_HOME/agent-tts/`)
+  - `audio/YYYY-MM-DD/` - Generated audio files
+
 ## Database
 
-Data is stored in a SQLite database. The default location: `~/.agent-tts/agent-tts.db`. Use the `sqlite3` CLI tool to manipulate the database.
+Data is stored in a SQLite database. The default location: `~/.local/state/agent-tts/agent-tts.db`. Use the `sqlite3` CLI tool to manipulate the database.
 
 Here is the schema:
 
@@ -83,7 +97,7 @@ Features:
 TTS implementation with multiple providers:
 
 - **Providers**: ElevenLabs, OpenAI, and Kokoro (local) support
-- **Audio Storage**: Permanent audio files saved to `~/.agent-tts/audio/YYYY-MM-DD/profile-timestamp.mp3`
+- **Audio Storage**: Permanent audio files saved to `~/.cache/agent-tts/audio/YYYY-MM-DD/profile-timestamp.mp3`
 - **Audio Replay**: Cached audio files are reused when replaying messages
 - **AudioPlayer Service**: Centralized audio playback with proper process management
 - **Stoppable Playback**: Works for both new TTS generation and replayed audio files

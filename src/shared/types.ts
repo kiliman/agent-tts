@@ -56,7 +56,7 @@ export interface ProfileConfig {
 }
 
 // Root configuration interface
-// default export from `~/.agent-tts/index.ts`
+// default export from `~/.config/agent-tts/config.ts`
 export interface AppConfig {
   profiles: ProfileConfig[];
 }

@@ -1,9 +1,9 @@
 import Database from 'better-sqlite3';
 import path from 'path';
-import os from 'os';
 import fs from 'fs';
 import { FileState, TTSQueueEntry } from '../types/config.js';
 import { TTSLogRepository } from '../database/tts-log.js';
+import { AGENT_TTS_PATHS } from '../utils/xdg-paths.js';
 
 export class DatabaseManager {
   private db: Database.Database;
@@ -11,7 +11,7 @@ export class DatabaseManager {
   private ttsLogRepo: TTSLogRepository;
 
   constructor(dbPath?: string) {
-    this.dbPath = dbPath || path.join(os.homedir(), '.agent-tts', 'agent-tts.db');
+    this.dbPath = dbPath || path.join(AGENT_TTS_PATHS.state, 'agent-tts.db');
     
     const dbDir = path.dirname(this.dbPath);
     if (!fs.existsSync(dbDir)) {

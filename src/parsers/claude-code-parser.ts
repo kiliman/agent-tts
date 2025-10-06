@@ -42,6 +42,14 @@ export class ClaudeCodeParser extends BaseParser {
           if (typeof data.message.content === 'string') {
             content = data.message.content;
           } else if (Array.isArray(data.message.content)) {
+            // Skip tool result messages (subagent responses)
+            const hasToolResult = data.message.content.some((item: any) =>
+              item && typeof item === 'object' && item.type === 'tool_result'
+            );
+            if (hasToolResult) {
+              continue;
+            }
+
             // Extract text content from array (handle images, etc.)
             const textParts: string[] = [];
             for (const item of data.message.content) {
