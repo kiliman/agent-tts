@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2025-10-08
+
+### ✨ Features
+
+- ✨ Add browser-based audio playback with HTML5 Audio API
+  - Play/pause audio directly in web UI
+  - Client-side playback independent from server
+  - Automatic cleanup on component unmount
+- ✨ Add `/audio` route to serve cached audio files for remote access
+- ✨ Enable remote audio playback via Tailscale and other networks
+- ✨ Implement environment-aware resource URL generation
+  - Development: Full URLs (http://localhost:3456/...) for cross-port access
+  - Production: Relative URLs (/audio/..., /images/...) for any access method
+- ✨ Include audioUrl in WebSocket payloads for all log entries
+- ✨ Simplify to single unified server for production deployment
+  - Remove CLI flags (--server, --client)
+  - Single Express app serves both API and built frontend
+  - Improved shutdown handling with timeout guards
+
+### 🐛 Fixes
+
+- 🐛 Preserve generated audio files (remove tempFile flag)
+- 🐛 Fix broken images when accessing via Tailscale or remote URLs
+- 🐛 Fix audio URLs to work with any access method
+
+### ♻️ Refactoring
+
+- ♻️ Add setServerBaseUrl() to AppCoordinator for dynamic URL generation
+- ♻️ Update getResourceUrl() utility for environment-aware resource loading
+- ♻️ Remove unused LogViewer props (onPlayEntry, onPause, onStop)
+- ♻️ Simplify bin/agent-tts.js entry point
+
+### 📝 Documentation
+
+- 📝 Document browser-based audio playback in CLAUDE.md
+- 📝 Add Resource URLs section explaining environment-aware URL handling
+- 📝 Update playback modes documentation (server-side, browser-side, remote)
+
+**Version bump**: Minor release (0.7.0 → 0.8.0) - Major new feature: browser-based audio playback with remote access support. Audio files can now be played directly in the browser and accessed from mobile devices via Tailscale. Simplified production deployment with unified server architecture.
+
 ## [0.7.0] - 2025-10-06
 
 ### ✨ Features
