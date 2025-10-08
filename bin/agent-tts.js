@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // Parse CLI arguments
-const args = process.argv.slice(2);
+const args = process.argv.slice(2)
 
 // Show help
 if (args.includes('--help') || args.includes('-h')) {
@@ -21,9 +21,9 @@ Environment Variables:
 For development with hot reload:
   npm run dev        Run server with hot reload
   npm run dev:client Run Vite dev server separately
-`);
-  process.exit(0);
+`)
+  process.exit(0)
 }
 
 // Start the server
-import('../dist/server/server/main.js');
+import('../dist/server/server/main.js')

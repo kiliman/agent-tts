@@ -1,16 +1,16 @@
-import { OpenAITTSService } from './openai.js';
-import { TTSServiceConfig } from '../../types/config.js';
+import { OpenAITTSService } from './openai.js'
+import { TTSServiceConfig } from '../../types/config.js'
 
 /**
  * Kokoro TTS Service
- * 
+ *
  * Kokoro is an open-source TTS system that provides an OpenAI-compatible API.
  * It runs locally and offers high-quality voice synthesis without cloud dependencies.
- * 
+ *
  * Default configuration assumes Kokoro is running locally on port 8080.
  * Voice IDs in Kokoro follow patterns like:
  * - af_bella, af_nicole, af_sarah (American Female voices)
- * - am_adam, am_michael, am_echo (American Male voices) 
+ * - am_adam, am_michael, am_echo (American Male voices)
  * - bf_emma, bf_alice, bf_lily (British Female voices)
  * - bm_george, bm_daniel, bm_lewis (British Male voices)
  */
@@ -32,19 +32,19 @@ export class KokoroTTSService extends OpenAITTSService {
         // Kokoro supports speed adjustment
         speed: config.options?.speed || 1.0,
         // Default to MP3 format
-        responseFormat: config.options?.responseFormat || 'mp3'
-      }
-    };
-    
-    super(kokoroConfig);
-    
-    console.log(`[Kokoro] Initialized with local instance at ${this.baseUrl}`);
-    console.log(`[Kokoro] Using voice: ${this.voiceId}`);
+        responseFormat: config.options?.responseFormat || 'mp3',
+      },
+    }
+
+    super(kokoroConfig)
+
+    console.log(`[Kokoro] Initialized with local instance at ${this.baseUrl}`)
+    console.log(`[Kokoro] Using voice: ${this.voiceId}`)
   }
-  
+
   isAvailable(): boolean {
     // For local Kokoro, we don't strictly need an API key
     // Just check if we have a base URL configured
-    return !!this.baseUrl;
+    return !!this.baseUrl
   }
 }

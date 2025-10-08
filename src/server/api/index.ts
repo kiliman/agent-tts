@@ -1,166 +1,166 @@
-import { Express, Request, Response } from 'express';
-import { AppCoordinator } from '../../services/app-coordinator.js';
+import { Express, Request, Response } from 'express'
+import { AppCoordinator } from '../../services/app-coordinator.js'
 
 export function setupApiRoutes(app: Express, coordinator: AppCoordinator) {
   // TTS Control endpoints
   app.post('/api/tts/pause', async (req: Request, res: Response) => {
     try {
-      await coordinator.pausePlayback();
-      res.json({ success: true, message: 'Playback paused' });
+      await coordinator.pausePlayback()
+      res.json({ success: true, message: 'Playback paused' })
     } catch (error) {
-      res.status(500).json({ success: false, error: (error as Error).message });
+      res.status(500).json({ success: false, error: (error as Error).message })
     }
-  });
+  })
 
   app.post('/api/tts/resume', async (req: Request, res: Response) => {
     try {
-      await coordinator.resumePlayback();
-      res.json({ success: true, message: 'Playback resumed' });
+      await coordinator.resumePlayback()
+      res.json({ success: true, message: 'Playback resumed' })
     } catch (error) {
-      res.status(500).json({ success: false, error: (error as Error).message });
+      res.status(500).json({ success: false, error: (error as Error).message })
     }
-  });
+  })
 
   app.post('/api/tts/stop', async (req: Request, res: Response) => {
     try {
-      await coordinator.stopPlayback();
-      res.json({ success: true, message: 'Playback stopped' });
+      await coordinator.stopPlayback()
+      res.json({ success: true, message: 'Playback stopped' })
     } catch (error) {
-      res.status(500).json({ success: false, error: (error as Error).message });
+      res.status(500).json({ success: false, error: (error as Error).message })
     }
-  });
+  })
 
   app.post('/api/tts/skip', async (req: Request, res: Response) => {
     try {
-      await coordinator.skipCurrent();
-      res.json({ success: true, message: 'Skipped current message' });
+      await coordinator.skipCurrent()
+      res.json({ success: true, message: 'Skipped current message' })
     } catch (error) {
-      res.status(500).json({ success: false, error: (error as Error).message });
+      res.status(500).json({ success: false, error: (error as Error).message })
     }
-  });
+  })
 
   // Profile management
   app.get('/api/profiles', async (req: Request, res: Response) => {
     try {
-      const profiles = await coordinator.getProfiles();
-      res.json({ success: true, profiles });
+      const profiles = await coordinator.getProfiles()
+      res.json({ success: true, profiles })
     } catch (error) {
-      res.status(500).json({ success: false, error: (error as Error).message });
+      res.status(500).json({ success: false, error: (error as Error).message })
     }
-  });
+  })
 
   app.put('/api/profiles/:id', async (req: Request, res: Response) => {
     try {
-      const { id } = req.params;
-      const { enabled } = req.body;
-      await coordinator.setProfileEnabled(id, enabled);
-      res.json({ success: true, message: `Profile ${id} ${enabled ? 'enabled' : 'disabled'}` });
+      const { id } = req.params
+      const { enabled } = req.body
+      await coordinator.setProfileEnabled(id, enabled)
+      res.json({ success: true, message: `Profile ${id} ${enabled ? 'enabled' : 'disabled'}` })
     } catch (error) {
-      res.status(500).json({ success: false, error: (error as Error).message });
+      res.status(500).json({ success: false, error: (error as Error).message })
     }
-  });
-  
+  })
+
   // Get unique CWDs for a profile
   app.get('/api/profiles/:id/cwds', async (req: Request, res: Response) => {
     try {
-      const { id } = req.params;
-      const cwds = await coordinator.getUniqueCwds(id);
-      res.json({ success: true, cwds });
+      const { id } = req.params
+      const cwds = await coordinator.getUniqueCwds(id)
+      res.json({ success: true, cwds })
     } catch (error) {
-      res.status(500).json({ success: false, error: (error as Error).message });
+      res.status(500).json({ success: false, error: (error as Error).message })
     }
-  });
+  })
 
   // Logs
   app.get('/api/logs', async (req: Request, res: Response) => {
     try {
-      const limit = parseInt(req.query.limit as string) || 50;
-      const offset = parseInt(req.query.offset as string) || 0;
-      const profile = req.query.profile as string | undefined;
-      const favoritesOnly = req.query.favorites === 'true';
-      const cwd = req.query.cwd as string | undefined;
-      const logs = await coordinator.getLogsWithAvatars(limit, profile, favoritesOnly, offset, cwd);
-      res.json({ success: true, logs, hasMore: logs.length === limit });
+      const limit = parseInt(req.query.limit as string) || 50
+      const offset = parseInt(req.query.offset as string) || 0
+      const profile = req.query.profile as string | undefined
+      const favoritesOnly = req.query.favorites === 'true'
+      const cwd = req.query.cwd as string | undefined
+      const logs = await coordinator.getLogsWithAvatars(limit, profile, favoritesOnly, offset, cwd)
+      res.json({ success: true, logs, hasMore: logs.length === limit })
     } catch (error) {
-      res.status(500).json({ success: false, error: (error as Error).message });
+      res.status(500).json({ success: false, error: (error as Error).message })
     }
-  });
+  })
 
   // Get last message per profile for dashboard
   app.get('/api/logs/latest-per-profile', async (req: Request, res: Response) => {
     try {
-      const latestLogs = await coordinator.getLatestLogsPerProfile();
-      res.json({ success: true, logs: latestLogs });
+      const latestLogs = await coordinator.getLatestLogsPerProfile()
+      res.json({ success: true, logs: latestLogs })
     } catch (error) {
-      res.status(500).json({ success: false, error: (error as Error).message });
+      res.status(500).json({ success: false, error: (error as Error).message })
     }
-  });
+  })
 
   app.post('/api/logs/:id/replay', async (req: Request, res: Response) => {
     try {
-      const { id } = req.params;
-      await coordinator.replayLog(parseInt(id));
-      res.json({ success: true, message: 'Replaying log entry' });
+      const { id } = req.params
+      await coordinator.replayLog(parseInt(id))
+      res.json({ success: true, message: 'Replaying log entry' })
     } catch (error) {
-      res.status(500).json({ success: false, error: (error as Error).message });
+      res.status(500).json({ success: false, error: (error as Error).message })
     }
-  });
-  
+  })
+
   // Toggle favorite status
   app.post('/api/logs/:id/favorite', async (req: Request, res: Response) => {
     try {
-      const id = parseInt(req.params.id);
-      const isFavorite = coordinator.database.toggleFavorite(id);
-      res.json({ success: true, isFavorite });
+      const id = parseInt(req.params.id)
+      const isFavorite = coordinator.database.toggleFavorite(id)
+      res.json({ success: true, isFavorite })
     } catch (error) {
-      res.status(500).json({ success: false, error: (error as Error).message });
+      res.status(500).json({ success: false, error: (error as Error).message })
     }
-  });
-  
+  })
+
   // Get favorites count
   app.get('/api/favorites/count', async (req: Request, res: Response) => {
     try {
-      const profile = req.query.profile as string | undefined;
-      const count = coordinator.database.getFavoritesCount(profile);
-      res.json({ success: true, count });
+      const profile = req.query.profile as string | undefined
+      const count = coordinator.database.getFavoritesCount(profile)
+      res.json({ success: true, count })
     } catch (error) {
-      res.status(500).json({ success: false, error: (error as Error).message });
+      res.status(500).json({ success: false, error: (error as Error).message })
     }
-  });
+  })
 
   // Status
   app.get('/api/status', async (req: Request, res: Response) => {
     try {
-      const status = await coordinator.getStatus();
-      res.json({ success: true, ...status });
+      const status = await coordinator.getStatus()
+      res.json({ success: true, ...status })
     } catch (error) {
-      res.status(500).json({ success: false, error: (error as Error).message });
+      res.status(500).json({ success: false, error: (error as Error).message })
     }
-  });
+  })
 
   // Settings
   app.put('/api/settings/mute', async (req: Request, res: Response) => {
     try {
-      const currentMute = await coordinator.isMuted();
-      await coordinator.setMuted(!currentMute);
-      res.json({ success: true, muted: !currentMute });
+      const currentMute = await coordinator.isMuted()
+      await coordinator.setMuted(!currentMute)
+      res.json({ success: true, muted: !currentMute })
     } catch (error) {
-      res.status(500).json({ success: false, error: (error as Error).message });
+      res.status(500).json({ success: false, error: (error as Error).message })
     }
-  });
+  })
 
   // Config reload
   app.post('/api/config/reload', async (req: Request, res: Response) => {
     try {
-      await coordinator.reloadConfig();
-      res.json({ success: true, message: 'Configuration reloaded' });
+      await coordinator.reloadConfig()
+      res.json({ success: true, message: 'Configuration reloaded' })
     } catch (error) {
-      res.status(500).json({ success: false, error: (error as Error).message });
+      res.status(500).json({ success: false, error: (error as Error).message })
     }
-  });
+  })
 
   // Health check
   app.get('/api/health', (req: Request, res: Response) => {
-    res.json({ success: true, status: 'healthy' });
-  });
+    res.json({ success: true, status: 'healthy' })
+  })
 }

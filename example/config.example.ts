@@ -1,5 +1,5 @@
-import type { AgentTTSConfig, TTSServiceConfig } from '../src/types/config';
-import { markdownCleaner } from '../src/filters/markdown-cleaner';
+import type { AgentTTSConfig, TTSServiceConfig } from '../src/types/config'
+import { markdownCleaner } from '../src/filters/markdown-cleaner'
 
 // Base ElevenLabs configuration - shared across all profiles
 const baseElevenLabsConfig: TTSServiceConfig = {
@@ -8,17 +8,17 @@ const baseElevenLabsConfig: TTSServiceConfig = {
   model: 'eleven_turbo_v2_5', // Using the turbo v2.5 model
   options: {
     stability: 0.5,
-    similarityBoost: 0.75
-  }
-};
+    similarityBoost: 0.75,
+  },
+}
 
 // Voice presets for different agents
 const voices = {
   sarah: 'EXAVITQu4vr4xnSDxMaL',
   adam: 'pNInz6obpgDQGcFmaJgB',
   bella: '21m00Tcm4TlvDq8ikWAM',
-  elli: 'MF3mGyEYCl7XYWbV9V6O'
-};
+  elli: 'MF3mGyEYCl7XYWbV9V6O',
+}
 
 const config: AgentTTSConfig = {
   profiles: [
@@ -27,17 +27,15 @@ const config: AgentTTSConfig = {
       name: 'Claude Code',
       icon: '🤖',
       enabled: true,
-      watchPaths: [
-        '~/.claude-trace/claude-code.jsonl'
-      ],
+      watchPaths: ['~/.claude-trace/claude-code.jsonl'],
       parser: {
-        type: 'claude-code'
+        type: 'claude-code',
       },
       filters: [
         {
           name: 'markdown-cleaner',
           enabled: true,
-          filter: markdownCleaner
+          filter: markdownCleaner,
         },
         {
           name: 'pronunciation',
@@ -49,10 +47,10 @@ const config: AgentTTSConfig = {
               content: message.content
                 .replace(/\bgit\b/gi, 'ghit')
                 .replace(/\bGit\b/g, 'Ghit')
-                .replace(/\\/g, ' backslash ')
-            };
-          }
-        }
+                .replace(/\\/g, ' backslash '),
+            }
+          },
+        },
       ],
       ttsService: {
         ...baseElevenLabsConfig,
@@ -60,20 +58,18 @@ const config: AgentTTSConfig = {
         options: {
           ...baseElevenLabsConfig.options,
           // Override specific settings for Claude if needed
-          stability: 0.5
-        }
-      }
+          stability: 0.5,
+        },
+      },
     },
     {
       id: 'opencode',
       name: 'OpenCode',
       icon: '💻',
       enabled: false,
-      watchPaths: [
-        '~/.opencode/logs/chat.log'
-      ],
+      watchPaths: ['~/.opencode/logs/chat.log'],
       parser: {
-        type: 'opencode'
+        type: 'opencode',
       },
       filters: [],
       ttsService: {
@@ -83,15 +79,15 @@ const config: AgentTTSConfig = {
           ...baseElevenLabsConfig.options,
           // Different voice settings for OpenCode
           stability: 0.6,
-          similarityBoost: 0.8
-        }
-      }
-    }
+          similarityBoost: 0.8,
+        },
+      },
+    },
   ],
   globalHotkey: 'Ctrl+Esc',
   muted: false,
   databasePath: '~/.agent-tts/db.sqlite',
-  configPath: '~/.agent-tts'
-};
+  configPath: '~/.agent-tts',
+}
 
-export default config;
+export default config

@@ -1,9 +1,9 @@
 /**
  * Example configuration for using Kokoro TTS
- * 
+ *
  * Kokoro is an open-source, local TTS service that provides
  * high-quality voice synthesis without cloud dependencies.
- * 
+ *
  * To use this configuration:
  * 1. Install and run Kokoro locally (default port 8080)
  * 2. Copy this file to ~/.agent-tts/index.js
@@ -16,11 +16,9 @@ export default {
       id: 'claudia-kokoro',
       name: 'Claudia (Kokoro)',
       enabled: true,
-      watchPaths: [
-        '~/.local/share/opencode/project/global/storage/session/message/**'
-      ],
+      watchPaths: ['~/.local/share/opencode/project/global/storage/session/message/**'],
       parser: {
-        type: 'opencode'
+        type: 'opencode',
       },
       filters: [
         {
@@ -28,30 +26,30 @@ export default {
           enabled: true,
           filter: (message) => {
             // Only speak assistant messages
-            return message.role === 'assistant' ? message : null;
-          }
+            return message.role === 'assistant' ? message : null
+          },
         },
         {
           name: 'emoji',
-          enabled: true  // Strip emojis so TTS doesn't read emoji names
+          enabled: true, // Strip emojis so TTS doesn't read emoji names
         },
         {
           name: 'length',
           enabled: true,
           filter: (message) => {
             // Skip very short messages
-            if (message.content.length < 10) return null;
-            
+            if (message.content.length < 10) return null
+
             // Truncate very long messages
             if (message.content.length > 500) {
               return {
                 ...message,
-                content: message.content.substring(0, 497) + '...'
-              };
+                content: message.content.substring(0, 497) + '...',
+              }
             }
-            return message;
-          }
-        }
+            return message
+          },
+        },
       ],
       ttsService: {
         type: 'kokoro',
@@ -70,44 +68,42 @@ export default {
           // Speed of speech (0.5 to 2.0)
           speed: 1.0,
           // Output format
-          responseFormat: 'mp3'
-        }
-      }
+          responseFormat: 'mp3',
+        },
+      },
     },
     {
       id: 'claude-code-kokoro',
       name: 'Claude Code (Kokoro)',
       enabled: true,
-      watchPaths: [
-        '~/.local/share/opencode/project/global/storage/session/part/**'
-      ],
+      watchPaths: ['~/.local/share/opencode/project/global/storage/session/part/**'],
       parser: {
-        type: 'claude-code'
+        type: 'claude-code',
       },
       filters: [
         {
           name: 'role',
           enabled: true,
           filter: (message) => {
-            return message.role === 'assistant' ? message : null;
-          }
-        }
+            return message.role === 'assistant' ? message : null
+          },
+        },
       ],
       ttsService: {
         type: 'kokoro',
         voiceId: 'bf_emma', // British Female (Emma) for Claude Code
         options: {
           speed: 1.1, // Slightly faster
-          responseFormat: 'mp3'
-        }
-      }
-    }
-  ]
-};
+          responseFormat: 'mp3',
+        },
+      },
+    },
+  ],
+}
 
 /**
  * Alternative configuration for OpenAI-compatible services
- * 
+ *
  * You can also use the 'openai-compatible' type for any service
  * that implements the OpenAI TTS API, including:
  * - LocalAI
@@ -131,9 +127,9 @@ export const openAICompatibleExample = {
         model: 'your-model-name',
         options: {
           speed: 1.0,
-          responseFormat: 'mp3'
-        }
-      }
-    }
-  ]
-};
+          responseFormat: 'mp3',
+        },
+      },
+    },
+  ],
+}

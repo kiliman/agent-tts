@@ -1,19 +1,22 @@
-import { ParsedMessage } from '../types/config.js';
+import { ParsedMessage } from '../types/config.js'
 
 export abstract class BaseFilter {
-  constructor(protected name: string, protected enabled: boolean = true) {}
+  constructor(
+    protected name: string,
+    protected enabled: boolean = true,
+  ) {}
 
-  abstract filter(message: ParsedMessage): ParsedMessage | null;
+  abstract filter(message: ParsedMessage): ParsedMessage | null
 
   isEnabled(): boolean {
-    return this.enabled;
+    return this.enabled
   }
 
   setEnabled(enabled: boolean): void {
-    this.enabled = enabled;
+    this.enabled = enabled
   }
 
   getName(): string {
-    return this.name;
+    return this.name
   }
 }

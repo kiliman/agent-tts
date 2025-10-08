@@ -1,127 +1,127 @@
-import { BaseParser, LogMode } from './base-parser.js';
-import { ParsedMessage } from '../types/config.js';
-import type { Message, TextBlock } from '@anthropic-ai/sdk/resources/messages';
+import { BaseParser, LogMode } from './base-parser.js'
+import { ParsedMessage } from '../types/config.js'
+import type { Message, TextBlock } from '@anthropic-ai/sdk/resources/messages'
 
 export class ClaudeCodeParser extends BaseParser {
   getLogMode(): LogMode {
     // Claude Code appends to a single JSONL file
-    return 'append';
+    return 'append'
   }
-  
+
   parse(content: string): ParsedMessage[] {
-    const messages: ParsedMessage[] = [];
-    const lines = content.split('\n').filter(line => line.trim());
-    
+    const messages: ParsedMessage[] = []
+    const lines = content.split('\n').filter((line) => line.trim())
+
     // Try to find cwd from the first message that has it
-    let cwd: string | undefined;
+    let cwd: string | undefined
     for (const line of lines) {
       try {
-        const data = JSON.parse(line);
+        const data = JSON.parse(line)
         if (data.cwd) {
-          cwd = data.cwd;
-          break;
+          cwd = data.cwd
+          break
         }
       } catch {
         // Skip invalid JSON
       }
     }
-    
+
     for (const line of lines) {
       try {
-        const data = JSON.parse(line);
-        
+        const data = JSON.parse(line)
+
         // Process both user and assistant messages
         if (data.type === 'user' && data.message && data.message.role === 'user') {
           // Skip meta messages (like command caveats)
           if (data.isMeta === true) {
-            continue;
+            continue
           }
 
-          let content: string = '';
+          let content: string = ''
 
           if (typeof data.message.content === 'string') {
-            content = data.message.content;
+            content = data.message.content
           } else if (Array.isArray(data.message.content)) {
             // Skip tool result messages (subagent responses)
-            const hasToolResult = data.message.content.some((item: any) =>
-              item && typeof item === 'object' && item.type === 'tool_result'
-            );
+            const hasToolResult = data.message.content.some(
+              (item: any) => item && typeof item === 'object' && item.type === 'tool_result',
+            )
             if (hasToolResult) {
-              continue;
+              continue
             }
 
             // Extract text content from array (handle images, etc.)
-            const textParts: string[] = [];
+            const textParts: string[] = []
             for (const item of data.message.content) {
               if (item && typeof item === 'object' && item.type === 'text' && item.text) {
-                textParts.push(item.text);
+                textParts.push(item.text)
               }
             }
-            content = textParts.join('\n\n');
+            content = textParts.join('\n\n')
           }
 
           // Skip messages that contain command tags or are empty
           if (!content || !content.trim()) {
-            continue;
+            continue
           }
 
           // Skip command-related messages
           if (this.isCommandMessage(content)) {
-            continue;
+            continue
           }
 
-          const timestamp = data.timestamp ? new Date(data.timestamp) : new Date();
+          const timestamp = data.timestamp ? new Date(data.timestamp) : new Date()
           messages.push({
             role: 'user',
             content: content,
             timestamp,
-            cwd: data.cwd || cwd
-          });
+            cwd: data.cwd || cwd,
+          })
         } else if (data.type === 'assistant' && data.message) {
           // Process assistant message
-          const message = data.message as Message;
-          
+          const message = data.message as Message
+
           // Extract text from the message content
-          const text = this.extractTextFromMessage(message);
+          const text = this.extractTextFromMessage(message)
           if (!text || !text.trim()) {
-            continue;
+            continue
           }
-          
+
           // Parse timestamp
-          const timestamp = data.timestamp ? new Date(data.timestamp) : new Date();
-          
+          const timestamp = data.timestamp ? new Date(data.timestamp) : new Date()
+
           messages.push({
             role: 'assistant',
             content: text,
             timestamp,
-            cwd: data.cwd || cwd // Use message-specific cwd if available, otherwise use the file-level cwd
-          });
+            cwd: data.cwd || cwd, // Use message-specific cwd if available, otherwise use the file-level cwd
+          })
         }
       } catch (error) {
         // Skip invalid JSON lines
-        console.log(`[ClaudeCodeParser] Skipping invalid JSON line: ${error}`);
+        console.log(`[ClaudeCodeParser] Skipping invalid JSON line: ${error}`)
       }
     }
 
-    return messages;
+    return messages
   }
-  
+
   private extractTextFromMessage(message: Message): string {
     if (!message.content || !Array.isArray(message.content)) {
-      return '';
+      return ''
     }
 
-    const textParts: string[] = [];
+    const textParts: string[] = []
 
     for (const block of message.content) {
       if (block.type === 'text') {
-        const textBlock = block as TextBlock;
-        textParts.push(textBlock.text);
+        const textBlock = block as TextBlock
+        textParts.push(textBlock.text)
       }
       // Skip tool_use blocks, thinking blocks, etc.
     }
 
-    return textParts.join('\n\n');
+    return textParts.join('\n\n')
   }
 
   private isCommandMessage(content: string): boolean {
@@ -135,9 +135,9 @@ export class ClaudeCodeParser extends BaseParser {
       /<\/command-args>/,
       /<local-command-stdout>/,
       /<\/local-command-stdout>/,
-      /^Caveat:\s*The messages below were generated by the user while running local commands/i
-    ];
+      /^Caveat:\s*The messages below were generated by the user while running local commands/i,
+    ]
 
-    return commandPatterns.some(pattern => pattern.test(content));
+    return commandPatterns.some((pattern) => pattern.test(content))
   }
 }

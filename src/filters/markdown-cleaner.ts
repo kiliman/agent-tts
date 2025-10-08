@@ -1,4 +1,4 @@
-import { ParsedMessage } from '../types/config.js';
+import { ParsedMessage } from '../types/config.js'
 
 export const markdownCleaner = (message: ParsedMessage): ParsedMessage | null => {
   const cleaned = message.content
@@ -19,17 +19,17 @@ export const markdownCleaner = (message: ParsedMessage): ParsedMessage | null =>
     .replace(/^\s*[-*+]\s+/gm, '')
     .replace(/^\s*\d+\.\s+/gm, '')
     // Normalize whitespace (single spaces only, no newline stripping)
-    .replace(/[^\S\n]+/g, ' ')  // Replace all whitespace except newlines with single space
-    .replace(/\n{3,}/g, '\n\n')  // Collapse multiple newlines to max 2
-    .trim();
+    .replace(/[^\S\n]+/g, ' ') // Replace all whitespace except newlines with single space
+    .replace(/\n{3,}/g, '\n\n') // Collapse multiple newlines to max 2
+    .trim()
 
   // Skip empty messages
   if (!cleaned) {
-    return null;
+    return null
   }
 
   return {
     ...message,
-    content: cleaned
-  };
-};
+    content: cleaned,
+  }
+}

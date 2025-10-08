@@ -1,21 +1,23 @@
-import React from 'react';
-import clsx from 'clsx';
+import React from 'react'
+import clsx from 'clsx'
 
 interface ToggleSwitchProps {
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-  label?: string;
-  disabled?: boolean;
+  checked: boolean
+  onChange: (checked: boolean) => void
+  label?: string
+  disabled?: boolean
 }
 
 export function ToggleSwitch({ checked, onChange, label, disabled = false }: ToggleSwitchProps) {
   return (
     <label className="flex items-center gap-2 cursor-pointer">
       {label && (
-        <span className={clsx('text-sm select-none', {
-          'text-gray-400': disabled,
-          'text-gray-700 dark:text-gray-300': !disabled
-        })}>
+        <span
+          className={clsx('text-sm select-none', {
+            'text-gray-400': disabled,
+            'text-gray-700 dark:text-gray-300': !disabled,
+          })}
+        >
           {label}
         </span>
       )}
@@ -28,14 +30,11 @@ export function ToggleSwitch({ checked, onChange, label, disabled = false }: Tog
           disabled={disabled}
         />
         <div
-          className={clsx(
-            'w-11 h-6 rounded-full transition-colors duration-200 ease-in-out',
-            {
-              'bg-blue-600': checked && !disabled,
-              'bg-gray-300 dark:bg-gray-600': !checked && !disabled,
-              'bg-gray-200 dark:bg-gray-700': disabled,
-            }
-          )}
+          className={clsx('w-11 h-6 rounded-full transition-colors duration-200 ease-in-out', {
+            'bg-blue-600': checked && !disabled,
+            'bg-gray-300 dark:bg-gray-600': !checked && !disabled,
+            'bg-gray-200 dark:bg-gray-700': disabled,
+          })}
         >
           <div
             className={clsx(
@@ -44,11 +43,11 @@ export function ToggleSwitch({ checked, onChange, label, disabled = false }: Tog
               {
                 'translate-x-5': checked,
                 'translate-x-0': !checked,
-              }
+              },
             )}
           />
         </div>
       </div>
     </label>
-  );
+  )
 }
