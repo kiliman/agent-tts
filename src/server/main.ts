@@ -5,7 +5,6 @@ import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-import { spawn } from 'child_process';
 import { initializeDatabase } from '../database/schema.js';
 import { ConfigLoader } from '../config/loader.js';
 import { AppCoordinator } from '../services/app-coordinator.js';
@@ -18,23 +17,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = parseInt(process.env.PORT || '3456');
-const CLIENT_PORT = parseInt(process.env.CLIENT_PORT || '5173');
 const HOST = process.env.HOST || 'localhost';
-
-// Check which services to run
-const RUN_SERVER = process.env.RUN_SERVER === 'true';
-const RUN_CLIENT = process.env.RUN_CLIENT === 'true';
 
 let configLoader: ConfigLoader | null = null;
 let appCoordinator: AppCoordinator | null = null;
 let serverPort = PORT;
-let clientPortToUse = CLIENT_PORT;
+let isShuttingDown = false;
 
 async function startServer() {
   try {
     // Set up logging to file
     replaceConsoleWithLogger();
-    
+
     // Initialize database
     console.log('Initializing database...');
     initializeDatabase();
@@ -48,9 +42,8 @@ async function startServer() {
       throw new Error('Failed to load configuration');
     }
 
-    // Use ports from config if specified
+    // Use port from config if specified
     serverPort = config.serverPort || PORT;
-    clientPortToUse = config.clientPort || CLIENT_PORT;
 
     // Initialize app coordinator
     console.log('Starting app coordinator...');
@@ -75,48 +68,47 @@ async function startServer() {
       fs.mkdirSync(userImagesPath, { recursive: true });
       console.log('Created user images directory:', userImagesPath);
     }
-    
+
     // Custom middleware to serve images from multiple directories with priority
+    const publicImagesPath =
+      process.env.NODE_ENV === 'production'
+        ? path.join(__dirname, '../../client/images')
+        : path.join(__dirname, '../../public/images');
+
+    console.log('User images path:', path.resolve(userImagesPath));
+    console.log('Public images path:', path.resolve(publicImagesPath));
     app.use('/images', (req, res, next) => {
       const imageName = req.path.substring(1); // Remove leading slash
       const userImagePath = path.join(userImagesPath, imageName);
-      
+
       // First try user images directory
       if (fs.existsSync(userImagePath)) {
-        console.log(`Serving user image: ${imageName}`);
         return res.sendFile(userImagePath);
       }
-      
+
       // Then try public images directory in development
-      if (process.env.NODE_ENV !== 'production') {
-        const publicImagesPath = path.join(__dirname, '../../public/images');
-        const publicImagePath = path.join(publicImagesPath, imageName);
-        if (fs.existsSync(publicImagePath)) {
-          console.log(`Serving public image: ${imageName}`);
-          return res.sendFile(publicImagePath);
-        }
+      const publicImagePath = path.join(publicImagesPath, imageName);
+      if (fs.existsSync(publicImagePath)) {
+        return res.sendFile(publicImagePath);
       }
-      
+
       // Image not found in either location
       next();
     });
-    
-    console.log('Image directories configured:');
-    console.log('  User images:', userImagesPath);
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('  Public images (fallback):', path.join(__dirname, '../../public/images'));
-    }
 
     // Serve static files
-    const clientPath = path.join(__dirname, '../../dist/client');
-    
+    const clientPath =
+      process.env.NODE_ENV === 'production'
+        ? path.join(__dirname, '../../client')
+        : path.join(__dirname, '../../dist/client');
+    console.log('Client path:', path.resolve(clientPath));
     // Check if client build exists
     const clientBuildExists = fs.existsSync(clientPath);
-    
+
     if (clientBuildExists) {
       console.log('Serving frontend from:', clientPath);
       app.use(express.static(clientPath));
-      
+
       // Fallback to index.html for client-side routing
       app.get('*', (req, res) => {
         // Don't serve index.html for API routes or static assets
@@ -143,11 +135,14 @@ async function startServer() {
       console.error('Configuration error:', error);
       // Broadcast error to connected clients via WebSocket
       wss.clients.forEach((client) => {
-        if (client.readyState === 1) { // WebSocket.OPEN
-          client.send(JSON.stringify({ 
-            type: 'config-error', 
-            error: error.message 
-          }));
+        if (client.readyState === 1) {
+          // WebSocket.OPEN
+          client.send(
+            JSON.stringify({
+              type: 'config-error',
+              error: error.message,
+            }),
+          );
         }
       });
     });
@@ -172,80 +167,52 @@ async function startServer() {
     process.on('SIGINT', shutdown);
 
     async function shutdown() {
-      console.log('Shutting down gracefully...');
-      
-      if (appCoordinator) {
-        await appCoordinator.shutdown();
+      if (isShuttingDown) {
+        console.log('Already shutting down, forcing exit...');
+        process.exit(1);
       }
-      
-      if (configLoader) {
-        configLoader.stopWatching();
-      }
-      
-      server.close(() => {
-        console.log('Server closed');
-        process.exit(0);
-      });
-    }
 
+      isShuttingDown = true;
+      console.log('Shutting down gracefully...');
+
+      // Set a timeout to force exit if shutdown takes too long
+      const forceExitTimer = setTimeout(() => {
+        console.error('Shutdown timeout, forcing exit...');
+        process.exit(1);
+      }, 5000);
+
+      try {
+        if (appCoordinator) {
+          await appCoordinator.shutdown();
+        }
+
+        if (configLoader) {
+          configLoader.stopWatching();
+        }
+
+        server.close(() => {
+          clearTimeout(forceExitTimer);
+          console.log('Server closed');
+          process.exit(0);
+        });
+
+        // If server.close callback doesn't fire, force exit after waiting
+        setTimeout(() => {
+          clearTimeout(forceExitTimer);
+          console.log("Server close callback didn't fire, exiting anyway");
+          process.exit(0);
+        }, 2000);
+      } catch (error) {
+        clearTimeout(forceExitTimer);
+        console.error('Error during shutdown:', error);
+        process.exit(1);
+      }
+    }
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
   }
 }
 
-// Determine which services to run
-// In development (when run via npm run dev), run both by default
-// In production (via CLI), the bin script handles defaults
-const isDevelopment = process.env.NODE_ENV !== 'production';
-const shouldRunServer = RUN_SERVER || (!RUN_SERVER && !RUN_CLIENT && isDevelopment);
-const shouldRunClient = RUN_CLIENT || (!RUN_SERVER && !RUN_CLIENT && isDevelopment);
-
-// Start client dev server if needed
-let viteProcess: ReturnType<typeof spawn> | null = null;
-if (shouldRunClient) {
-  startClientDevServer();
-}
-
-// Start backend server if needed
-if (shouldRunServer) {
-  startServer();
-}
-
-function startClientDevServer() {
-  console.log(`Starting Vite dev server on port ${clientPortToUse}...`);
-
-  // Find the project root (where package.json is)
-  const projectRoot = path.join(__dirname, '../..');
-
-  viteProcess = spawn('npm', ['run', 'dev:client'], {
-    cwd: projectRoot,
-    stdio: 'inherit',
-    shell: true,
-    env: {
-      ...process.env,
-      VITE_PORT: clientPortToUse.toString(),
-    }
-  });
-
-  viteProcess.on('error', (error: Error) => {
-    console.error('Failed to start Vite dev server:', error);
-  });
-
-  viteProcess.on('exit', (code: number) => {
-    console.log(`Vite dev server exited with code ${code}`);
-  });
-
-  // Handle graceful shutdown
-  process.on('SIGTERM', () => {
-    if (viteProcess) {
-      viteProcess.kill('SIGTERM');
-    }
-  });
-
-  process.on('SIGINT', () => {
-    if (viteProcess) {
-      viteProcess.kill('SIGINT');
-    }
-  });
-}
+// Start the server
+startServer();
