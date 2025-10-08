@@ -10,14 +10,19 @@ export function getResourceUrl(path: string | undefined): string | undefined {
     return path
   }
 
-  // Otherwise, prepend the API base URL
-  // In development with HMR, client runs on 3457 but API/images are on 3456
+  // Remove leading slash if present to avoid double slashes
+  const cleanPath = path.startsWith('/') ? path : `/${path}`
+
+  // In production, use relative URLs (client and server on same origin)
+  if (import.meta.env.PROD) {
+    return cleanPath
+  }
+
+  // In development, prepend the API base URL
+  // (client runs on different port than API/images server)
   const apiPort = import.meta.env.VITE_API_PORT || '3456'
   const apiHost = import.meta.env.VITE_API_HOST || 'localhost'
   const apiProtocol = import.meta.env.VITE_API_PROTOCOL || 'http'
-
-  // Remove leading slash if present to avoid double slashes
-  const cleanPath = path.startsWith('/') ? path : `/${path}`
 
   return `${apiProtocol}://${apiHost}:${apiPort}${cleanPath}`
 }

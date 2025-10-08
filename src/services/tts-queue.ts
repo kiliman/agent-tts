@@ -122,15 +122,16 @@ export class TTSQueueProcessor extends EventEmitter {
           throw new Error('TTS service not available')
         }
 
-        // Generate TTS and get the audio file path
-        const tempAudioPath = await ttsService.tts(message.filteredText, {
+        // Generate TTS and get the audio file path (saved to permanent location)
+        const audioPath = await ttsService.tts(message.filteredText, {
           profile: message.profile,
           timestamp: message.timestamp,
         })
 
         // Play the audio using our audio player
-        if (tempAudioPath) {
-          await this.audioPlayer.play(tempAudioPath, { tempFile: true })
+        // Note: Don't use tempFile flag as the file is already saved to permanent location
+        if (audioPath) {
+          await this.audioPlayer.play(audioPath)
         }
       }
 

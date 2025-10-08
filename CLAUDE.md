@@ -98,7 +98,12 @@ TTS implementation with multiple providers:
 
 - **Providers**: ElevenLabs, OpenAI, and Kokoro (local) support
 - **Audio Storage**: Permanent audio files saved to `~/.cache/agent-tts/audio/YYYY-MM-DD/profile-timestamp.mp3`
+- **Audio Serving**: Audio files served via `/audio` route for browser and remote playback
 - **Audio Replay**: Cached audio files are reused when replaying messages
+- **Playback Modes**:
+  - **Server-side**: Automatic playback on local machine when new messages arrive
+  - **Browser-side**: Manual playback in web UI using HTML5 Audio API
+  - **Remote**: Audio URLs accessible for mobile apps and remote clients
 - **AudioPlayer Service**: Centralized audio playback with proper process management
 - **Stoppable Playback**: Works for both new TTS generation and replayed audio files
 - **Queue-based Processing**: Prevents audio overlap with proper queue management
@@ -109,6 +114,7 @@ TTS implementation with multiple providers:
   - Favorite status for memorable moments
   - API response details
   - Processing time
+  - Audio URL for playback
 
 ## API Endpoints
 
@@ -148,7 +154,10 @@ TTS implementation with multiple providers:
   - URL parameter `?favorites` for filtered view
 - Single-line log entries showing original text (click to expand)
 - Expandable entries to view both original and filtered text
-- Replay functionality for individual entries
+- **Browser-based Audio Playback**:
+  - Play button to play audio directly in browser
+  - Uses HTML5 Audio API for client-side playback
+  - Works with both local and remote access (Tailscale, etc.)
 - Visual states:
   - Grayscale for queued items
   - Green outline with pulse animation for currently playing
@@ -166,10 +175,22 @@ TTS implementation with multiple providers:
 
 Real-time updates for:
 
-- New log entries
+- New log entries (includes audio URL for playback)
 - Status changes (playing/stopped)
 - Configuration errors
 - Profile updates
+
+## Resource URLs
+
+The application serves static resources with environment-aware URL generation:
+
+- **Development Mode**: Full URLs with host and port (e.g., `http://localhost:3456/audio/...`)
+  - Client runs on different port (5173) than server (3456)
+  - Resources use absolute URLs to access server
+- **Production Mode**: Relative URLs (e.g., `/audio/...`, `/images/...`)
+  - Client and server run on same origin
+  - Relative URLs work with any access method (localhost, Tailscale, remote)
+  - Enables seamless remote access without hardcoded domains
 
 ## Global Controls
 
@@ -192,11 +213,8 @@ npm run build
 # Start production server
 npm run start:prod
 
-# Start with CLI (recommended for background service)
-agent-tts --server --client  # Both with hot reload
-agent-tts --server            # Backend only
-agent-tts --client            # Frontend only
-agent-tts                     # Production mode (serves built frontend)
+# Start with CLI
+agent-tts  # Production mode (serves built frontend)
 
 # Run tests
 npm run test

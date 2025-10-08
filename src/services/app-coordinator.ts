@@ -17,6 +17,7 @@ export class AppCoordinator extends EventEmitter {
   private ttsQueue: TTSQueueProcessor
   private settings: SettingsRepository
   private config: AgentTTSConfig | null = null
+  private serverBaseUrl: string = ''
 
   constructor() {
     super()
@@ -27,6 +28,21 @@ export class AppCoordinator extends EventEmitter {
     this.settings = new SettingsRepository()
 
     this.setupEventHandlers()
+  }
+
+  setServerBaseUrl(baseUrl: string): void {
+    this.serverBaseUrl = baseUrl
+    console.log('[AppCoordinator] Server base URL set to:', baseUrl)
+  }
+
+  private getAudioUrl(profile: string, timestamp: Date): string {
+    const dateStr = timestamp.toISOString().split('T')[0] // YYYY-MM-DD
+    const epochTimestamp = Math.floor(timestamp.getTime() / 1000)
+    const path = `/audio/${dateStr}/${profile}-${epochTimestamp}.mp3`
+
+    // Only include full URL in development mode (when client and server are on different ports)
+    const isDevelopment = process.env.NODE_ENV !== 'production'
+    return isDevelopment && this.serverBaseUrl ? `${this.serverBaseUrl}${path}` : path
   }
 
   private setupEventHandlers(): void {
@@ -60,6 +76,7 @@ export class AppCoordinator extends EventEmitter {
         profileUrl: message.profileConfig?.ttsService?.profileUrl,
         voiceName: message.profileConfig?.ttsService?.voiceName,
         role: message.role,
+        audioUrl: this.getAudioUrl(message.profile, message.timestamp),
       }
       this.emit('log-added', logEntry)
 
@@ -92,6 +109,7 @@ export class AppCoordinator extends EventEmitter {
         profileUrl: message.profileConfig?.ttsService?.profileUrl,
         voiceName: message.profileConfig?.ttsService?.voiceName,
         role: 'user',
+        audioUrl: this.getAudioUrl(message.profile, message.timestamp),
       }
       this.emit('log-added', logEntry)
     })
@@ -300,12 +318,14 @@ export class AppCoordinator extends EventEmitter {
     // Enrich logs with avatar info from config and simplify paths
     return logs.map((log) => {
       const profile = this.config?.profiles.find((p) => p.id === log.profile)
+      const timestamp = new Date(log.timestamp)
       return {
         ...log,
         cwd: this.replaceHomeWithTilde(log.cwd),
         avatarUrl: profile?.ttsService?.avatarUrl,
         profileUrl: profile?.ttsService?.profileUrl,
         voiceName: profile?.ttsService?.voiceName,
+        audioUrl: this.getAudioUrl(log.profile, timestamp),
       }
     })
   }

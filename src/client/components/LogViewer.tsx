@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import clsx from 'clsx'
 import { ToggleSwitch } from './ToggleSwitch'
 import { Play, Pause, RefreshCw, Heart, Loader2, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react'
@@ -16,14 +16,12 @@ interface LogEntry {
   isFavorite?: boolean
   cwd?: string
   role?: 'user' | 'assistant'
+  audioUrl?: string
 }
 
 interface LogViewerProps {
   logs: LogEntry[]
   onRefresh?: () => void
-  onPlayEntry?: (id: number) => void
-  onPause?: () => void
-  onStop?: () => void
   onToggleFavorite?: (id: number) => void
   onLoadMore?: () => Promise<void>
   playingId?: number | null
@@ -36,9 +34,6 @@ interface LogViewerProps {
 export function LogViewer({
   logs,
   onRefresh,
-  onPlayEntry,
-  onPause,
-  onStop,
   onToggleFavorite,
   onLoadMore,
   playingId,
@@ -50,6 +45,8 @@ export function LogViewer({
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
   const [autoScrollLocal, setAutoScrollLocal] = useState(autoScrollProp)
   const [copiedId, setCopiedId] = useState<number | null>(null)
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null)
+  const [localPlayingId, setLocalPlayingId] = useState<number | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const loadingRef = useRef<boolean>(false)
 
@@ -126,7 +123,7 @@ export function LogViewer({
 
   // Scroll when a new item starts playing
   useEffect(() => {
-    if (autoScroll && playingId && listRef.current) {
+    if (autoScroll && (playingId || localPlayingId) && listRef.current) {
       // Small delay to ensure DOM is updated
       setTimeout(() => {
         if (listRef.current) {
@@ -134,7 +131,7 @@ export function LogViewer({
         }
       }, 100)
     }
-  }, [playingId, autoScroll])
+  }, [playingId, localPlayingId, autoScroll])
 
   const toggleExpand = (id: number) => {
     const newExpanded = new Set(expandedIds)
@@ -151,11 +148,59 @@ export function LogViewer({
     return date.toLocaleTimeString()
   }
 
-  const handlePlay = (id: number) => {
-    if (onPlayEntry) {
-      onPlayEntry(id)
+  const handlePlay = (id: number, audioUrl?: string) => {
+    // Stop any currently playing audio
+    if (currentAudio) {
+      currentAudio.pause()
+      currentAudio.currentTime = 0
+    }
+
+    if (!audioUrl) {
+      console.error('No audio URL provided for entry:', id)
+      return
+    }
+
+    // Create and play new audio element
+    const audio = new Audio(audioUrl)
+    audio.play().catch((error) => {
+      console.error('Failed to play audio:', error)
+      setLocalPlayingId(null)
+      setCurrentAudio(null)
+    })
+
+    audio.onended = () => {
+      setLocalPlayingId(null)
+      setCurrentAudio(null)
+    }
+
+    audio.onerror = (error) => {
+      console.error('Audio error:', error)
+      setLocalPlayingId(null)
+      setCurrentAudio(null)
+    }
+
+    setCurrentAudio(audio)
+    setLocalPlayingId(id)
+  }
+
+  const handlePauseAudio = () => {
+    if (currentAudio) {
+      currentAudio.pause()
+      currentAudio.currentTime = 0
+      setCurrentAudio(null)
+      setLocalPlayingId(null)
     }
   }
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (currentAudio) {
+        currentAudio.pause()
+        currentAudio.currentTime = 0
+      }
+    }
+  }, [currentAudio])
 
   const handleCopy = (text: string, id: number) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -206,7 +251,8 @@ export function LogViewer({
                         ? "bg-blue-600 text-white ml-12 after:content-[''] after:absolute after:bottom-1 after:right-[-12px] after:w-3 after:h-3 after:bg-white dark:after:bg-gray-900 after:rounded-bl-[12px] before:content-[''] before:absolute before:bottom-1 before:-right-[5px] before:w-3 before:h-3 before:bg-blue-600 before:rounded-tl-[10px]"
                         : "bg-gray-200 dark:bg-gray-800 border border-gray-200 dark:border-gray-900 mr-12 after:content-[''] after:absolute after:bottom-1 after:left-[-12px] after:w-3 after:h-3 after:bg-gray-50 dark:after:bg-gray-900 after:rounded-br-[12px] before:content-[''] before:absolute before:bottom-1 before:-left-[8px] before:w-3 before:h-3 before:bg-gray-200 dark:before:bg-gray-800 before:rounded-tr-[10px]",
                       {
-                        'shadow-lg shadow-green-500/20 animate-pulse': playingId === log.id && isAssistant,
+                        'shadow-lg shadow-green-500/20 animate-pulse':
+                          (playingId === log.id || localPlayingId === log.id) && isAssistant,
                       },
                     )}
                   >
@@ -301,18 +347,18 @@ export function LogViewer({
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation()
-                              if (playingId === log.id && onPause) {
+                              if (localPlayingId === log.id) {
                                 console.log(`[LogViewer] Pausing playback for log ID: ${log.id}`)
-                                onPause()
+                                handlePauseAudio()
                               } else {
                                 console.log(`[LogViewer] Starting playback for log ID: ${log.id}`)
-                                handlePlay(log.id)
+                                handlePlay(log.id, log.audioUrl)
                               }
                             }}
                             className="p-1.5 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                            title={playingId === log.id ? 'Pause' : 'Play'}
+                            title={localPlayingId === log.id ? 'Pause' : 'Play'}
                           >
-                            {playingId === log.id ? (
+                            {localPlayingId === log.id ? (
                               <Pause className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                             ) : (
                               <Play className="w-4 h-4 text-gray-600 dark:text-gray-400" />

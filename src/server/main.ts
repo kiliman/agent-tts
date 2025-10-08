@@ -43,7 +43,7 @@ async function startServer() {
     }
 
     // Use port from config if specified
-    serverPort = config.serverPort || PORT
+    serverPort = PORT
 
     // Initialize app coordinator
     console.log('Starting app coordinator...')
@@ -60,6 +60,11 @@ async function startServer() {
 
     // API routes
     setupApiRoutes(app, appCoordinator)
+
+    // Serve audio files from cache directory
+    const audioPath = path.join(AGENT_TTS_PATHS.cache, 'audio')
+    console.log('Audio files path:', path.resolve(audioPath))
+    app.use('/audio', express.static(audioPath))
 
     // Serve images with priority: user images first, then public images as fallback
     const userImagesPath = path.join(AGENT_TTS_PATHS.config, 'images')
@@ -96,28 +101,30 @@ async function startServer() {
       next()
     })
 
-    // Serve static files
-    const clientPath =
-      process.env.NODE_ENV === 'production'
-        ? path.join(__dirname, '../../client')
-        : path.join(__dirname, '../../dist/client')
-    console.log('Client path:', path.resolve(clientPath))
-    // Check if client build exists
-    const clientBuildExists = fs.existsSync(clientPath)
+    if (process.env.NODE_ENV === 'production') {
+      // Serve static files
+      const clientPath =
+        process.env.NODE_ENV === 'production'
+          ? path.join(__dirname, '../../client')
+          : path.join(__dirname, '../../dist/client')
+      console.log('Client path:', path.resolve(clientPath))
+      // Check if client build exists
+      const clientBuildExists = fs.existsSync(clientPath)
 
-    if (clientBuildExists) {
-      console.log('Serving frontend from:', clientPath)
-      app.use(express.static(clientPath))
+      if (clientBuildExists) {
+        console.log('Serving frontend from:', clientPath)
+        app.use(express.static(clientPath))
 
-      // Fallback to index.html for client-side routing
-      app.get('*', (req, res) => {
-        // Don't serve index.html for API routes or static assets
-        if (!req.path.startsWith('/api') && !req.path.match(/\.\w+$/)) {
-          res.sendFile(path.join(clientPath, 'index.html'))
-        }
-      })
-    } else if (process.env.NODE_ENV === 'production') {
-      console.warn('Frontend build not found! Run "npm run build:client" first.')
+        // Fallback to index.html for client-side routing
+        app.get('*', (req, res) => {
+          // Don't serve index.html for API routes or static assets
+          if (!req.path.startsWith('/api') && !req.path.match(/\.\w+$/)) {
+            res.sendFile(path.join(clientPath, 'index.html'))
+          }
+        })
+      } else {
+        console.warn('Frontend build not found! Run "npm run build:client" first.')
+      }
     }
 
     // Setup WebSocket
@@ -153,12 +160,12 @@ async function startServer() {
 
     // Start server
     server.listen(serverPort, () => {
-      console.log(`Agent TTS server running at http://${HOST}:${serverPort}`)
-      if (clientBuildExists) {
-        console.log(`Web UI available at http://${HOST}:${serverPort}`)
-      } else {
-        console.log(`Web UI not built yet. Run 'npm run build:client' to build the frontend.`)
-        console.log(`For hot reload development, use 'npm run dev:separate' or 'agent-tts --server --client' instead.`)
+      const serverUrl = `http://${HOST}:${serverPort}`
+      console.log(`Agent TTS server running at ${serverUrl}`)
+
+      // Set the server base URL in the app coordinator for generating full audio URLs
+      if (appCoordinator) {
+        appCoordinator.setServerBaseUrl(serverUrl)
       }
     })
 

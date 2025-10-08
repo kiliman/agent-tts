@@ -33,17 +33,17 @@ export class FileMonitor extends EventEmitter {
       if (!profile.enabled) continue
 
       this.profiles.set(profile.id, profile)
-      console.log(`Processing profile: ${profile.id} with ${profile.watchPaths.length} watch paths`)
+      //console.log(`Processing profile: ${profile.id} with ${profile.watchPaths.length} watch paths`)
 
       // Get the parser to check its log mode
       const parser = ParserFactory.createParser(profile.parser)
       const logMode = parser.getLogMode()
-      console.log(`  Parser log mode: ${logMode}`)
+      //console.log(`  Parser log mode: ${logMode}`)
 
       // Expand tilde in all paths
       const expandedPaths = profile.watchPaths.map((path) => {
         const expanded = path.replace(/^~/, process.env.HOME || '')
-        console.log(`  Watch path: ${path} -> ${expanded}`)
+        //console.log(`  Watch path: ${path} -> ${expanded}`)
         return expanded
       })
 
@@ -61,12 +61,12 @@ export class FileMonitor extends EventEmitter {
 
       // Mark when initial scan is complete
       watcher.on('ready', () => {
-        console.log(`[FileMonitor] Initial scan complete for profile: ${profile.id}`)
+        //console.log(`[FileMonitor] Initial scan complete for profile: ${profile.id}`)
         this.isInitialScanComplete = true
       })
 
       watcher.on('add', async (path) => {
-        console.log(`[FileMonitor] File added: ${path}`)
+        //console.log(`[FileMonitor] File added: ${path}`)
 
         // For 'new' mode parsers, only process files created after service started
         // For 'append' mode parsers, handle as before
@@ -75,14 +75,13 @@ export class FileMonitor extends EventEmitter {
           const stats = statSync(path)
           const fileCreatedAt = stats.birthtimeMs
           const isNewFile = fileCreatedAt > this.serviceStartTime
-
-          console.log(
-            `[FileMonitor] File created: ${new Date(fileCreatedAt).toISOString()}, service started: ${new Date(this.serviceStartTime).toISOString()}, isNew: ${isNewFile}`,
-          )
+          //console.log(
+          //            `[FileMonitor] File created: ${new Date(fileCreatedAt).toISOString()}, service started: ${new Date(this.serviceStartTime).toISOString()}, isNew: ${isNewFile}`
+          //)
 
           // Only process files created after the service started
           if (isNewFile) {
-            console.log(`[FileMonitor] Processing new file (${logMode} mode), entire content`)
+            //console.log(`[FileMonitor] Processing new file (${logMode} mode), entire content`)
 
             if (stats.size > 0) {
               // Read and process the entire file
@@ -97,16 +96,16 @@ export class FileMonitor extends EventEmitter {
                 }
 
                 this.changeQueue.push(change)
-                console.log(`[FileMonitor] Queued new file with ${content.length} chars`)
+                //console.log(`[FileMonitor] Queued new file with ${content.length} chars`)
                 this.processQueue()
               }
             }
           } else {
-            console.log(`[FileMonitor] Skipping file created before service started`)
+            //console.log(`[FileMonitor] Skipping file created before service started`)
           }
 
           // Don't save file state for 'new' mode - each file is independent
-          console.log(`[FileMonitor] Skipping file state for ${logMode} mode`)
+          //console.log(`[FileMonitor] Skipping file state for ${logMode} mode`)
         } else {
           // For 'append' mode (Claude Code), handle as before
           // Check if this file has been seen before
@@ -115,18 +114,18 @@ export class FileMonitor extends EventEmitter {
 
           if (existingState) {
             // File exists in database - check for new content only
-            console.log(`[FileMonitor] File already tracked, checking for new content`)
+            //console.log(`[FileMonitor] File already tracked, checking for new content`)
 
             if (stats.size > existingState.lastProcessedOffset) {
               // Has new content since last processed
-              console.log(`[FileMonitor] Found new content (${stats.size - existingState.lastProcessedOffset} bytes)`)
+              //console.log(`[FileMonitor] Found new content (${stats.size - existingState.lastProcessedOffset} bytes)`)
               await this.handleFileChange(path, profile)
             } else {
-              console.log(`[FileMonitor] No new content to process`)
+              //console.log(`[FileMonitor] No new content to process`)
             }
           } else if (!this.isInitialScanComplete) {
             // New file during startup scan - just save state, don't process old content
-            console.log(`[FileMonitor] New file detected during startup scan, saving state without processing`)
+            //console.log(`[FileMonitor] New file detected during startup scan, saving state without processing`)
 
             // Save file state with current size (marking all existing content as "processed")
             const state: FileState = {
@@ -136,10 +135,10 @@ export class FileMonitor extends EventEmitter {
               lastProcessedOffset: stats.size, // Mark current size as processed
             }
             await this.database.updateFileState(state)
-            console.log(`[FileMonitor] Saved file state at offset ${stats.size} (skipping existing content)`)
+            //console.log(`[FileMonitor] Saved file state at offset ${stats.size} (skipping existing content)`)
           } else {
             // New file after startup - process entire content
-            console.log(`[FileMonitor] New file detected after startup, processing entire content`)
+            //console.log(`[FileMonitor] New file detected after startup, processing entire content`)
 
             if (stats.size > 0) {
               // Read and process the entire file
@@ -154,7 +153,7 @@ export class FileMonitor extends EventEmitter {
                 }
 
                 this.changeQueue.push(change)
-                console.log(`[FileMonitor] Queued new file with ${content.length} chars`)
+                //console.log(`[FileMonitor] Queued new file with ${content.length} chars`)
                 this.processQueue()
               }
             }
@@ -167,7 +166,7 @@ export class FileMonitor extends EventEmitter {
               lastProcessedOffset: stats.size,
             }
             await this.database.updateFileState(state)
-            console.log(`[FileMonitor] Saved file state at offset ${stats.size}`)
+            //console.log(`[FileMonitor] Saved file state at offset ${stats.size}`)
           }
         }
       })
@@ -176,10 +175,10 @@ export class FileMonitor extends EventEmitter {
         // Only handle changes for 'append' mode parsers
         // 'new' mode parsers create new files, they don't modify existing ones
         if (logMode === 'append') {
-          console.log(`[FileMonitor] Change detected in: ${path}`)
+          //console.log(`[FileMonitor] Change detected in: ${path}`)
           this.handleFileChange(path, profile)
         } else {
-          console.log(`[FileMonitor] Ignoring change for ${logMode} mode file: ${path}`)
+          //console.log(`[FileMonitor] Ignoring change for ${logMode} mode file: ${path}`)
         }
       })
 
@@ -190,7 +189,7 @@ export class FileMonitor extends EventEmitter {
       this.watchers.set(profile.id, watcher)
     }
 
-    console.log(`Monitoring ${profiles.filter((p) => p.enabled).length} profiles with watchers`)
+    //console.log(`Monitoring ${profiles.filter((p) => p.enabled).length} profiles with watchers`)
   }
 
   async stopMonitoring(): Promise<void> {
@@ -215,20 +214,20 @@ export class FileMonitor extends EventEmitter {
   // Removed initializeFileState - no longer needed as we handle state inline
 
   private async handleFileChange(filepath: string, profile: ProfileConfig): Promise<void> {
-    console.log(`[FileMonitor] Processing change for: ${filepath} (profile: ${profile.id})`)
+    //console.log(`[FileMonitor] Processing change for: ${filepath} (profile: ${profile.id})`)
 
     if (!existsSync(filepath)) {
-      console.log(`[FileMonitor] File no longer exists: ${filepath}`)
+      //console.log(`[FileMonitor] File no longer exists: ${filepath}`)
       return
     }
 
     const stats = statSync(filepath)
-    console.log(`[FileMonitor] File stats - size: ${stats.size}, mtime: ${new Date(stats.mtimeMs).toISOString()}`)
+    //console.log(`[FileMonitor] File stats - size: ${stats.size}, mtime: ${new Date(stats.mtimeMs).toISOString()}`)
 
     let fileState = await this.database.getFileState(filepath)
 
     if (!fileState) {
-      console.log(`[FileMonitor] No previous state found, treating as new file`)
+      //console.log(`[FileMonitor] No previous state found, treating as new file`)
       // This shouldn't happen in normal flow as 'add' event handles new files
       // But if it does, treat the entire file as new content
       const newState: FileState = {
@@ -241,11 +240,11 @@ export class FileMonitor extends EventEmitter {
       fileState = newState
     }
 
-    console.log(`[FileMonitor] Previous state - size: ${fileState.fileSize}, offset: ${fileState.lastProcessedOffset}`)
+    //console.log(`[FileMonitor] Previous state - size: ${fileState.fileSize}, offset: ${fileState.lastProcessedOffset}`)
 
     if (stats.size <= fileState.lastProcessedOffset) {
       if (stats.size < fileState.lastProcessedOffset) {
-        console.log(`[FileMonitor] File truncated, resetting offset from ${fileState.lastProcessedOffset} to 0`)
+        //console.log(`[FileMonitor] File truncated, resetting offset from ${fileState.lastProcessedOffset} to 0`)
         const newState: FileState = {
           filepath,
           lastModified: stats.mtimeMs,
@@ -255,18 +254,18 @@ export class FileMonitor extends EventEmitter {
         await this.database.updateFileState(newState)
         await this.handleFileChange(filepath, profile)
       } else {
-        console.log(`[FileMonitor] No new content (size: ${stats.size} <= offset: ${fileState.lastProcessedOffset})`)
+        //console.log(`[FileMonitor] No new content (size: ${stats.size} <= offset: ${fileState.lastProcessedOffset})`)
       }
       return
     }
 
     const bytesToRead = stats.size - fileState.lastProcessedOffset
-    console.log(`[FileMonitor] Reading ${bytesToRead} new bytes from offset ${fileState.lastProcessedOffset}`)
+    //console.log(`[FileMonitor] Reading ${bytesToRead} new bytes from offset ${fileState.lastProcessedOffset}`)
 
     const newContent = this.readFileFromOffset(filepath, fileState.lastProcessedOffset)
 
     if (newContent.trim()) {
-      console.log(`[FileMonitor] Found new content (${newContent.length} chars), adding to queue`)
+      //console.log(`[FileMonitor] Found new content (${newContent.length} chars), adding to queue`)
       const change: FileChange = {
         filepath,
         profile,
@@ -275,10 +274,10 @@ export class FileMonitor extends EventEmitter {
       }
 
       this.changeQueue.push(change)
-      console.log(`[FileMonitor] Queue size: ${this.changeQueue.length}`)
+      //console.log(`[FileMonitor] Queue size: ${this.changeQueue.length}`)
       this.processQueue()
     } else {
-      console.log(`[FileMonitor] New content is empty/whitespace only`)
+      //console.log(`[FileMonitor] New content is empty/whitespace only`)
     }
 
     const newState: FileState = {
@@ -303,20 +302,20 @@ export class FileMonitor extends EventEmitter {
   private async processQueue(): Promise<void> {
     if (this.isProcessing || this.changeQueue.length === 0) {
       if (this.isProcessing) {
-        console.log(`[FileMonitor] Already processing queue`)
+        //console.log(`[FileMonitor] Already processing queue`)
       }
       return
     }
 
     this.isProcessing = true
-    console.log(`[FileMonitor] Processing queue with ${this.changeQueue.length} items`)
+    //console.log(`[FileMonitor] Processing queue with ${this.changeQueue.length} items`)
 
     while (this.changeQueue.length > 0) {
       const change = this.changeQueue.shift()
       if (!change) continue
 
       try {
-        console.log(`[FileMonitor] Emitting fileChanged event for ${change.filepath}`)
+        //console.log(`[FileMonitor] Emitting fileChanged event for ${change.filepath}`)
         this.emit('fileChanged', change)
       } catch (error) {
         console.error(`[FileMonitor] Error processing file change for ${change.filepath}:`, error)
@@ -324,7 +323,7 @@ export class FileMonitor extends EventEmitter {
     }
 
     this.isProcessing = false
-    console.log(`[FileMonitor] Queue processing complete`)
+    //console.log(`[FileMonitor] Queue processing complete`)
   }
 
   updateProfiles(profiles: ProfileConfig[]): void {
