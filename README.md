@@ -256,6 +256,7 @@ agent-tts-logs --last 20 --profile claudia --cwd . --json
 ```
 
 **Options:**
+
 - `--last N` - Get last N messages (default: 20)
 - `--since DATE` - Get messages since date/time (local time)
 - `--cwd PATH` - Filter by working directory (use `.` for current)
