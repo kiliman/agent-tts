@@ -23,6 +23,7 @@ export interface TTSLogEntry {
   elapsed: number
   cwd?: string // current working directory
   role?: 'user' | 'assistant' // Track the role for proper display
+  images?: string // Comma-delimited list of image paths
 }
 
 export type FilterFunction = (text: string) => string

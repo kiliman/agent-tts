@@ -1,6 +1,7 @@
 import { BaseParser, LogMode } from './base-parser.js'
 import { ParsedMessage } from '../types/config.js'
 import type { Message, TextBlock } from '@anthropic-ai/sdk/resources/messages'
+import { extractImagesFromMessage } from '../utils/image-extractor.js'
 
 export class ClaudeCodeParser extends BaseParser {
   getLogMode(): LogMode {
@@ -8,7 +9,7 @@ export class ClaudeCodeParser extends BaseParser {
     return 'append'
   }
 
-  parse(content: string): ParsedMessage[] {
+  async parse(content: string): Promise<ParsedMessage[]> {
     const messages: ParsedMessage[] = []
     const lines = content.split('\n').filter((line) => line.trim())
 
@@ -38,6 +39,7 @@ export class ClaudeCodeParser extends BaseParser {
           }
 
           let content: string = ''
+          let imagePaths: string[] = []
 
           if (typeof data.message.content === 'string') {
             content = data.message.content
@@ -50,7 +52,7 @@ export class ClaudeCodeParser extends BaseParser {
               continue
             }
 
-            // Extract text content from array (handle images, etc.)
+            // Extract text content and images from array
             const textParts: string[] = []
             for (const item of data.message.content) {
               if (item && typeof item === 'object' && item.type === 'text' && item.text) {
@@ -58,6 +60,9 @@ export class ClaudeCodeParser extends BaseParser {
               }
             }
             content = textParts.join('\n\n')
+
+            // Extract images from the content array
+            imagePaths = await extractImagesFromMessage(data.message.content)
           }
 
           // Skip messages that contain command tags or are empty
@@ -76,6 +81,7 @@ export class ClaudeCodeParser extends BaseParser {
             content: content,
             timestamp,
             cwd: data.cwd || cwd,
+            images: imagePaths.length > 0 ? imagePaths : undefined,
           })
         } else if (data.type === 'assistant' && data.message) {
           // Process assistant message

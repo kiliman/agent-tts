@@ -17,6 +17,7 @@ interface LogEntry {
   cwd?: string
   role?: 'user' | 'assistant'
   audioUrl?: string
+  images?: string // Comma-delimited list of image paths
 }
 
 interface LogViewerProps {
@@ -273,6 +274,31 @@ export function LogViewer({
                     >
                       {isUser ? log.originalText.replace(/\\\n/g, '\n') : log.originalText}
                     </div>
+
+                    {/* Image thumbnails */}
+                    {log.images && (
+                      <div className="flex flex-row flex-wrap gap-2 mt-2">
+                        {log.images.split(',').map((img) => (
+                          <button
+                            type="button"
+                            key={img}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              window.open(`/images/${img}`, '_blank')
+                            }}
+                            className="size-16 rounded overflow-hidden border-0 p-0 cursor-pointer"
+                            title="Click to view full size"
+                          >
+                            <img
+                              src={`/images/${img}`}
+                              className="size-16 object-cover"
+                              loading="lazy"
+                              alt="Message attachment"
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Action buttons */}
                     {(isAssistant || isUser) && (

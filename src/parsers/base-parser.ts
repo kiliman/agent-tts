@@ -3,7 +3,7 @@ import { ParsedMessage } from '../types/config.js'
 export type LogMode = 'append' | 'new'
 
 export abstract class BaseParser {
-  abstract parse(content: string): ParsedMessage[]
+  abstract parse(content: string): ParsedMessage[] | Promise<ParsedMessage[]>
 
   /**
    * Returns the log mode for this parser

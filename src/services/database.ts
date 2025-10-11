@@ -256,9 +256,9 @@ export class DatabaseManager {
       .prepare(
         `INSERT INTO tts_queue (
         timestamp, filename, profile, original_text, filtered_text,
-        state, api_response_status, api_response_message, processing_time, cwd, role
+        state, api_response_status, api_response_message, processing_time, cwd, role, images
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         entry.timestamp.getTime(),
@@ -272,6 +272,7 @@ export class DatabaseManager {
         entry.processingTime || null,
         entry.cwd || null,
         entry.role || null,
+        entry.images || null,
       )
 
     return result.lastInsertRowid as number
@@ -296,6 +297,7 @@ export class DatabaseManager {
       isFavorite: row.is_favorite,
       cwd: row.cwd,
       role: row.role,
+      images: row.images,
     }
   }
 

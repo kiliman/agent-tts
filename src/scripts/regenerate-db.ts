@@ -4,14 +4,17 @@ import path from 'path'
 import os from 'os'
 import fs from 'fs'
 import { glob } from 'glob'
-import { ClaudeCodeParser } from '../src/parsers/claude-code-parser.js'
-import { OpenCodeParser } from '../src/parsers/opencode-parser.js'
-import { FilterChain } from '../src/filters/filter-chain.js'
-import { ParsedMessage, ProfileConfig } from '../src/types/config.js'
+import { ClaudeCodeParser } from '../parsers/claude-code-parser.js'
+import { OpenCodeParser } from '../parsers/opencode-parser.js'
+import { FilterChain } from '../filters/filter-chain.js'
+import { ParsedMessage, ProfileConfig } from '../types/config.js'
+import { AGENT_TTS_PATHS } from '../utils/xdg-paths.js'
 
 // Load configuration
 async function loadConfig(): Promise<any> {
   const configPaths = [
+    path.join(os.homedir(), '.config', 'agent-tts', 'config.js'),
+    path.join(os.homedir(), '.config', 'agent-tts', 'config.ts'),
     path.join(os.homedir(), '.agent-tts', 'index.js'),
     path.join(os.homedir(), '.agent-tts', 'index.ts'),
   ]
@@ -20,7 +23,7 @@ async function loadConfig(): Promise<any> {
     if (fs.existsSync(configPath)) {
       const fileUrl = `file://${configPath}?t=${Date.now()}`
       const module = await import(fileUrl)
-      return module.default
+      return module.default || module
     }
   }
 
@@ -37,10 +40,13 @@ function expandPath(filepath: string): string {
 
 // Main regeneration function
 async function regenerateDatabase() {
+  const args = process.argv.slice(2)
+  const shouldSwap = args.includes('--swap')
+
   console.log('Loading configuration...')
   const config = await loadConfig()
 
-  const dbPath = path.join(os.homedir(), '.agent-tts', 'agent-tts-regen.db')
+  const dbPath = path.join(AGENT_TTS_PATHS.state, 'agent-tts-regen.db')
   console.log(`Creating new database at: ${dbPath}`)
 
   // Delete existing regen database if it exists
@@ -69,9 +75,10 @@ async function regenerateDatabase() {
       created_at INTEGER DEFAULT (strftime('%s', 'now')),
       is_favorite INTEGER DEFAULT 0,
       cwd TEXT,
-      role TEXT CHECK(role IN ('user', 'assistant'))
+      role TEXT CHECK(role IN ('user', 'assistant')),
+      images TEXT
     );
-    
+
     CREATE TABLE IF NOT EXISTS tts_queue (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       timestamp INTEGER NOT NULL,
@@ -86,7 +93,8 @@ async function regenerateDatabase() {
       created_at INTEGER DEFAULT (strftime('%s', 'now')),
       is_favorite INTEGER DEFAULT 0,
       cwd TEXT,
-      role TEXT CHECK(role IN ('user', 'assistant'))
+      role TEXT CHECK(role IN ('user', 'assistant')),
+      images TEXT
     );
     
     CREATE TABLE IF NOT EXISTS file_states (
@@ -140,12 +148,17 @@ async function regenerateDatabase() {
 
       for (const filepath of files) {
         try {
+          // Get file stats
+          const stats = fs.statSync(filepath)
+          const fileSize = stats.size
+          const lastModified = stats.mtimeMs
+
           // Read file content
           const content = fs.readFileSync(filepath, 'utf-8')
           if (!content.trim()) continue
 
-          // Parse messages
-          const messages = parser.parse(content, filepath)
+          // Parse messages (await since parse is now async for image extraction)
+          const messages = await parser.parse(content, filepath)
 
           // Process each message
           for (const message of messages) {
@@ -154,9 +167,11 @@ async function regenerateDatabase() {
               const stmt = db.prepare(`
                 INSERT INTO tts_queue_temp (
                   timestamp, filename, profile, original_text, filtered_text,
-                  state, cwd, role
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                  state, cwd, role, images
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
               `)
+
+              const imagesStr = message.images && message.images.length > 0 ? message.images.join(',') : null
 
               stmt.run(
                 message.timestamp ? message.timestamp.getTime() : Date.now(),
@@ -167,6 +182,7 @@ async function regenerateDatabase() {
                 'user',
                 message.cwd || null,
                 'user',
+                imagesStr,
               )
             } else {
               // Apply filters for assistant messages
@@ -176,9 +192,11 @@ async function regenerateDatabase() {
               const stmt = db.prepare(`
                 INSERT INTO tts_queue_temp (
                   timestamp, filename, profile, original_text, filtered_text,
-                  state, cwd, role
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                  state, cwd, role, images
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
               `)
+
+              const imagesStr = message.images && message.images.length > 0 ? message.images.join(',') : null
 
               stmt.run(
                 message.timestamp ? message.timestamp.getTime() : Date.now(),
@@ -189,11 +207,21 @@ async function regenerateDatabase() {
                 'played', // Mark all historical messages as played
                 message.cwd || null,
                 'assistant',
+                imagesStr,
               )
             }
           }
+
+          // Add file to file_states table so it won't be reprocessed on startup
+          const fileStateStmt = db.prepare(`
+            INSERT OR REPLACE INTO file_states (
+              filepath, last_modified, file_size, last_processed_offset
+            ) VALUES (?, ?, ?, ?)
+          `)
+          fileStateStmt.run(filepath, lastModified, fileSize, fileSize)
         } catch (error) {
-          console.error(`  Error processing ${filepath}:`, error.message)
+          const message = error instanceof Error ? error.message : String(error)
+          console.error(`  Error processing ${filepath}:`, message)
         }
       }
     }
@@ -203,18 +231,26 @@ async function regenerateDatabase() {
   const tempCount = db.prepare('SELECT COUNT(*) as count FROM tts_queue_temp').get() as any
   console.log(`\nTotal messages in temp table: ${tempCount.count}`)
 
+  // Count messages with images
+  const imagesCount = db.prepare('SELECT COUNT(*) as count FROM tts_queue_temp WHERE images IS NOT NULL').get() as any
+  console.log(`Messages with images: ${imagesCount.count}`)
+
+  // Count tracked files
+  const fileStatesCount = db.prepare('SELECT COUNT(*) as count FROM file_states').get() as any
+  console.log(`Files tracked in file_states: ${fileStatesCount.count}`)
+
   // Copy from temp to final table, sorted by timestamp
   console.log('Copying sorted messages to final table...')
   db.exec(`
     INSERT INTO tts_queue (
       timestamp, filename, profile, original_text, filtered_text,
       state, api_response_status, api_response_message, processing_time,
-      created_at, is_favorite, cwd, role
+      created_at, is_favorite, cwd, role, images
     )
-    SELECT 
+    SELECT
       timestamp, filename, profile, original_text, filtered_text,
       state, api_response_status, api_response_message, processing_time,
-      created_at, is_favorite, cwd, role
+      created_at, is_favorite, cwd, role, images
     FROM tts_queue_temp
     ORDER BY timestamp ASC
   `)
@@ -231,11 +267,65 @@ async function regenerateDatabase() {
 
   console.log(`\nDatabase regeneration complete!`)
   console.log(`New database created at: ${dbPath}`)
-  console.log(`\nTo use this database:`)
-  console.log(`1. Stop the agent-tts service`)
-  console.log(`2. Backup current database: cp ~/.agent-tts/agent-tts.db ~/.agent-tts/agent-tts.db.backup`)
-  console.log(`3. Replace with new database: cp ~/.agent-tts/agent-tts-regen.db ~/.agent-tts/agent-tts.db`)
-  console.log(`4. Restart the agent-tts service`)
+
+  // Handle automatic swap if requested
+  if (shouldSwap) {
+    console.log(`\n--swap flag detected, performing automatic database swap...`)
+
+    const currentDbPath = path.join(AGENT_TTS_PATHS.state, 'agent-tts.db')
+    const backupDir = path.join(AGENT_TTS_PATHS.state, 'backups')
+
+    // Create backups directory if it doesn't exist
+    if (!fs.existsSync(backupDir)) {
+      fs.mkdirSync(backupDir, { recursive: true })
+      console.log(`Created backups directory: ${backupDir}`)
+    }
+
+    // Check if current database exists
+    if (fs.existsSync(currentDbPath)) {
+      // Create timestamped backup
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+      const backupPath = path.join(backupDir, `agent-tts-${timestamp}.db`)
+
+      console.log(`Backing up current database to: ${backupPath}`)
+      fs.copyFileSync(currentDbPath, backupPath)
+      console.log(`Backup created successfully`)
+
+      // Clean up old backups (keep last 10)
+      const backups = fs
+        .readdirSync(backupDir)
+        .filter((f) => f.startsWith('agent-tts-') && f.endsWith('.db'))
+        .sort()
+        .reverse()
+
+      if (backups.length > 10) {
+        for (const oldBackup of backups.slice(10)) {
+          fs.unlinkSync(path.join(backupDir, oldBackup))
+          console.log(`Removed old backup: ${oldBackup}`)
+        }
+      }
+    }
+
+    // Replace with new database
+    console.log(`Replacing current database with regenerated version...`)
+    fs.copyFileSync(dbPath, currentDbPath)
+    console.log(`Database replaced successfully!`)
+
+    // Remove the regen temp file
+    fs.unlinkSync(dbPath)
+    console.log(`Cleaned up temporary regeneration database`)
+
+    console.log(`\n✅ Database swap complete!`)
+    console.log(`\nIMPORTANT: Restart the agent-tts service for changes to take effect.`)
+  } else {
+    console.log(`\nTo use this database:`)
+    console.log(`1. Stop the agent-tts service`)
+    console.log(`2. Run: agent-tts-regenerate-db --swap`)
+    console.log(`   OR manually:`)
+    console.log(`   - Backup: cp ${path.join(AGENT_TTS_PATHS.state, 'agent-tts.db')} ${path.join(AGENT_TTS_PATHS.state, 'backups', 'agent-tts.db.backup')}`)
+    console.log(`   - Replace: cp ${dbPath} ${path.join(AGENT_TTS_PATHS.state, 'agent-tts.db')}`)
+    console.log(`3. Restart the agent-tts service`)
+  }
 }
 
 // Run the regeneration

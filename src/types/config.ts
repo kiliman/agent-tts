@@ -23,6 +23,7 @@ export interface ParsedMessage {
   content: string
   timestamp?: Date
   cwd?: string
+  images?: string[] // Array of relative image paths (e.g., ["a3f2/a3f2b5c7....png"])
 }
 
 export interface FilterConfig {
@@ -86,4 +87,5 @@ export interface TTSQueueEntry {
   isFavorite?: boolean
   cwd?: string
   role?: 'user' | 'assistant' // Track the role for proper display
+  images?: string // Comma-delimited list of image paths
 }

@@ -67,39 +67,32 @@ async function startServer() {
     app.use('/audio', express.static(audioPath))
 
     // Serve images with priority: user images first, then public images as fallback
-    const userImagesPath = path.join(AGENT_TTS_PATHS.config, 'images')
-    if (!fs.existsSync(userImagesPath)) {
-      // Create the directory if it doesn't exist
-      fs.mkdirSync(userImagesPath, { recursive: true })
-      console.log('Created user images directory:', userImagesPath)
+    // Serve cached images (from chat logs) at /images/*
+    const cachedImagesPath = path.join(AGENT_TTS_PATHS.cache, 'images')
+    if (!fs.existsSync(cachedImagesPath)) {
+      fs.mkdirSync(cachedImagesPath, { recursive: true })
+      console.log('Created cached images directory:', cachedImagesPath)
     }
+    console.log('Cached images path:', path.resolve(cachedImagesPath))
+    app.use('/images', express.static(cachedImagesPath))
 
-    // Custom middleware to serve images from multiple directories with priority
+    // Serve config/avatar images at /config/images/*
+    const configImagesPath = path.join(AGENT_TTS_PATHS.config, 'images')
+    if (!fs.existsSync(configImagesPath)) {
+      fs.mkdirSync(configImagesPath, { recursive: true })
+      console.log('Created config images directory:', configImagesPath)
+    }
+    console.log('Config images path:', path.resolve(configImagesPath))
+    app.use('/config/images', express.static(configImagesPath))
+
+    // Serve public/built-in images (fallback for both routes)
     const publicImagesPath =
       process.env.NODE_ENV === 'production'
         ? path.join(__dirname, '../../client/images')
         : path.join(__dirname, '../../public/images')
-
-    console.log('User images path:', path.resolve(userImagesPath))
     console.log('Public images path:', path.resolve(publicImagesPath))
-    app.use('/images', (req, res, next) => {
-      const imageName = req.path.substring(1) // Remove leading slash
-      const userImagePath = path.join(userImagesPath, imageName)
-
-      // First try user images directory
-      if (fs.existsSync(userImagePath)) {
-        return res.sendFile(userImagePath)
-      }
-
-      // Then try public images directory in development
-      const publicImagePath = path.join(publicImagesPath, imageName)
-      if (fs.existsSync(publicImagePath)) {
-        return res.sendFile(publicImagePath)
-      }
-
-      // Image not found in either location
-      next()
-    })
+    app.use('/images', express.static(publicImagesPath))
+    app.use('/config/images', express.static(publicImagesPath))
 
     if (process.env.NODE_ENV === 'production') {
       // Serve static files

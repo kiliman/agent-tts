@@ -28,7 +28,7 @@ export class MessageProcessor extends EventEmitter {
       const parser = ParserFactory.createParser(profile.parser)
       console.log(`[MessageProcessor] Using parser: ${profile.parser.type}`)
 
-      const messages = parser.parse(content)
+      const messages = await parser.parse(content)
       console.log(`[MessageProcessor] Parser returned ${messages.length} messages`)
 
       if (messages.length === 0) {
@@ -60,6 +60,7 @@ export class MessageProcessor extends EventEmitter {
             state: 'user',
             cwd: message.cwd,
             role: 'user',
+            images: message.images && message.images.length > 0 ? message.images.join(',') : undefined,
           }
 
           const entryId = await this.database.addTTSQueueEntry(entry)

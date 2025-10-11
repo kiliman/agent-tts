@@ -5,7 +5,8 @@
   "type": "module",
   "bin": {
     "agent-tts": "./bin/agent-tts.js",
-    "agent-tts-logs": "./bin/agent-tts-logs.js"
+    "agent-tts-logs": "./bin/agent-tts-logs.js",
+    "agent-tts-regenerate-db": "./bin/agent-tts-regenerate-db.js"
   },
   "files": [
     "bin",

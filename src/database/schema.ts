@@ -56,7 +56,16 @@ function createTables(): void {
     CREATE INDEX IF NOT EXISTS idx_file_states_profile ON file_states(profile);
   `)
 
-  // TTS queue/log table
+  // TTS queue/log table - check if images column exists first
+  const ttsQueueInfo = db.prepare(`PRAGMA table_info(tts_queue)`).all() as any[]
+  const hasImagesColumn = ttsQueueInfo.some((col: any) => col.name === 'images')
+
+  if (!hasImagesColumn && ttsQueueInfo.length > 0) {
+    // Table exists but doesn't have images column, add it
+    db.exec(`ALTER TABLE tts_queue ADD COLUMN images TEXT`)
+    console.log('Added images column to tts_queue table')
+  }
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS tts_queue (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,9 +78,10 @@ function createTables(): void {
       api_response_status INTEGER,
       api_response_message TEXT,
       processing_time INTEGER,
-      created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)
+      created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+      images TEXT
     );
-    
+
     CREATE INDEX IF NOT EXISTS idx_tts_queue_state ON tts_queue(state);
     CREATE INDEX IF NOT EXISTS idx_tts_queue_timestamp ON tts_queue(timestamp DESC);
     CREATE INDEX IF NOT EXISTS idx_tts_queue_profile ON tts_queue(profile);

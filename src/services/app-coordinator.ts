@@ -77,6 +77,7 @@ export class AppCoordinator extends EventEmitter {
         voiceName: message.profileConfig?.ttsService?.voiceName,
         role: message.role,
         audioUrl: this.getAudioUrl(message.profile, message.timestamp),
+        images: message.images,
       }
       this.emit('log-added', logEntry)
 
@@ -110,6 +111,7 @@ export class AppCoordinator extends EventEmitter {
         voiceName: message.profileConfig?.ttsService?.voiceName,
         role: 'user',
         audioUrl: this.getAudioUrl(message.profile, message.timestamp),
+        images: message.images,
       }
       this.emit('log-added', logEntry)
     })

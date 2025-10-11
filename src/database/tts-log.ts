@@ -20,9 +20,9 @@ export class TTSLogRepository {
         `
       INSERT INTO tts_queue (
         timestamp, filename, profile, original_text, filtered_text,
-        state, api_response_status, api_response_message, processing_time, cwd, role
+        state, api_response_status, api_response_message, processing_time, cwd, role, images
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
       )
       .run(
@@ -37,6 +37,7 @@ export class TTSLogRepository {
         entry.elapsed,
         entry.cwd || null,
         entry.role || null,
+        entry.images || null,
       )
 
     return result.lastInsertRowid as number
@@ -58,7 +59,7 @@ export class TTSLogRepository {
     const rows = this.db
       .prepare(
         `
-      SELECT 
+      SELECT
         id,
         timestamp,
         filename as filePath,
@@ -71,7 +72,9 @@ export class TTSLogRepository {
         processing_time as elapsed,
         is_favorite as isFavorite,
         cwd,
-        created_at as createdAt
+        role,
+        created_at as createdAt,
+        images
       FROM tts_queue
       ORDER BY timestamp DESC
       LIMIT ? OFFSET ?
@@ -84,7 +87,7 @@ export class TTSLogRepository {
 
   getEntriesByProfile(profile: string, limit: number = 50, offset: number = 0, cwd?: string): TTSLogRecord[] {
     let query = `
-      SELECT 
+      SELECT
         id,
         timestamp,
         filename as filePath,
@@ -97,7 +100,9 @@ export class TTSLogRepository {
         processing_time as elapsed,
         is_favorite as isFavorite,
         cwd,
-        created_at as createdAt
+        role,
+        created_at as createdAt,
+        images
       FROM tts_queue
       WHERE profile = ?
     `
@@ -121,7 +126,7 @@ export class TTSLogRepository {
     const row = this.db
       .prepare(
         `
-      SELECT 
+      SELECT
         id,
         timestamp,
         filename as filePath,
@@ -134,7 +139,9 @@ export class TTSLogRepository {
         processing_time as elapsed,
         is_favorite as isFavorite,
         cwd,
-        created_at as createdAt
+        role,
+        created_at as createdAt,
+        images
       FROM tts_queue
       WHERE id = ?
     `,
@@ -154,7 +161,7 @@ export class TTSLogRepository {
 
   getFavoritesByProfile(profile: string, limit: number = 50, offset: number = 0, cwd?: string): TTSLogRecord[] {
     let query = `
-      SELECT 
+      SELECT
         id,
         timestamp,
         filename as filePath,
@@ -167,7 +174,9 @@ export class TTSLogRepository {
         processing_time as elapsed,
         is_favorite as isFavorite,
         cwd,
-        created_at as createdAt
+        role,
+        created_at as createdAt,
+        images
       FROM tts_queue
       WHERE profile = ? AND is_favorite = 1
     `
@@ -191,7 +200,7 @@ export class TTSLogRepository {
     const rows = this.db
       .prepare(
         `
-      SELECT 
+      SELECT
         id,
         timestamp,
         filename as filePath,
@@ -204,7 +213,9 @@ export class TTSLogRepository {
         processing_time as elapsed,
         is_favorite as isFavorite,
         cwd,
-        created_at as createdAt
+        role,
+        created_at as createdAt,
+        images
       FROM tts_queue
       WHERE is_favorite = 1
       ORDER BY timestamp DESC
@@ -220,7 +231,7 @@ export class TTSLogRepository {
     const rows = this.db
       .prepare(
         `
-      SELECT 
+      SELECT
         id,
         timestamp,
         filename as filePath,
@@ -233,7 +244,9 @@ export class TTSLogRepository {
         processing_time as elapsed,
         is_favorite as isFavorite,
         cwd,
-        created_at as createdAt
+        role,
+        created_at as createdAt,
+        images
       FROM tts_queue
       WHERE state = ?
       ORDER BY timestamp DESC

@@ -38,13 +38,13 @@ export default {
       id: 'claudia',
       name: 'Claudia',
       model: 'Grok Code Fast 1',
-      modelIconUrl: '/images/grok.png',
+      modelIconUrl: '/config/images/grok.png',
       enabled: true,
       watchPaths: ['~/.local/share/opencode/project/global/storage/session/message/**'],
       parser: {
         type: 'opencode',
         name: 'OpenCode',
-        iconUrl: '/images/opencode.png',
+        iconUrl: '/config/images/opencode.png',
       },
       filters: [],
       ttsService: {
@@ -52,8 +52,8 @@ export default {
         baseUrl: 'http://localhost:8880/v1', // Your Kokoro instance
         voiceId: 'af_bella', // Available: af_bella, am_michael, bf_emma, bm_george, etc.
         voiceName: 'Claudia', // Display name in UI
-        avatarUrl: '/images/claudia-avatar.png', // Avatar image
-        profileUrl: '/images/claudia-profile.png', // Profile background image
+        avatarUrl: '/config/images/claudia-avatar.png', // Avatar image
+        profileUrl: '/config/images/claudia-profile.png', // Profile background image
         options: {
           speed: 1.0,
           responseFormat: 'mp3',
@@ -73,13 +73,13 @@ export default {
       id: 'claudia',
       name: 'Claudia',
       model: 'Claude Sonnet',
-      modelIconUrl: '/images/claude.png',
+      modelIconUrl: '/config/images/claude.png',
       enabled: true,
       watchPaths: ['~/.claude/projects/**'],
       parser: {
         type: 'claude-code',
         name: 'Claude Code',
-        iconUrl: '/images/claude-code.png',
+        iconUrl: '/config/images/claude-code.png',
       },
       filters: [],
       ttsService: {
@@ -88,8 +88,8 @@ export default {
         voiceId: 'YOUR_VOICE_ID',
         model: 'eleven_turbo_v2_5',
         voiceName: 'Claudia', // Display name in UI
-        avatarUrl: '/images/claudia-avatar.png', // Avatar image
-        profileUrl: '/images/claudia-profile.png', // Profile background image
+        avatarUrl: '/config/images/claudia-avatar.png', // Avatar image
+        profileUrl: '/config/images/claudia-profile.png', // Profile background image
         options: {
           stability: 0.5,
           similarityBoost: 0.75,
@@ -263,6 +263,35 @@ agent-tts-logs --last 20 --profile claudia --cwd . --json
 - `--exclude-cwd PATH` - Exclude messages from a directory
 - `--profile NAME` - Filter by profile name (e.g., claudia, opencode)
 - `--json` - Output as JSON (default: Markdown)
+
+### agent-tts-regenerate-db
+
+Rebuild the database from chat logs, extracting all messages and images from history:
+
+```bash
+# Generate a new database (creates agent-tts-regen.db)
+agent-tts-regenerate-db
+
+# Generate and automatically swap databases (with backup)
+agent-tts-regenerate-db --swap
+```
+
+**What it does:**
+
+- Re-parses all chat logs from configured profiles
+- Extracts messages, timestamps, and metadata
+- **Extracts and saves images** from chat history (Claude Code only)
+- Creates timestamped backups (keeps last 10)
+- Optionally swaps the new database automatically
+
+**When to use:**
+
+- After adding the `images` column (image extraction feature)
+- To rebuild history after changing parser logic
+- To recover from database corruption
+- To extract images from old conversations
+
+**Important:** Stop the agent-tts service before using `--swap`, then restart after completion.
 
 ## API
 

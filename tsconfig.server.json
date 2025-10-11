@@ -40,7 +40,8 @@
     "src/monitoring/**/*",
     "src/types/**/*",
     "src/shared/**/*",
-    "src/utils/**/*"
+    "src/utils/**/*",
+    "src/scripts/**/*"
   ],
   "exclude": ["node_modules", "dist"]
 }
