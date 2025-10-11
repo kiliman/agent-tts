@@ -224,6 +224,45 @@ See `examples/config-with-pronunciation.js` for a complete example.
   - `?favorites` - Show only favorite messages
   - `?cwd=/path/to/project` - Filter by project directory
 
+## CLI Tools
+
+### agent-tts-logs
+
+Query conversation logs from the agent-tts database:
+
+```bash
+# Get last 50 messages
+agent-tts-logs --last 50
+
+# Get messages since a specific date/time
+agent-tts-logs --since "2025-10-08 10:00"
+agent-tts-logs --since "1 hour ago"
+
+# Filter by current working directory
+agent-tts-logs --cwd .
+agent-tts-logs --cwd /Users/michael/Projects/myproject
+
+# Filter by profile
+agent-tts-logs --profile claudia
+
+# Exclude a directory (useful for scripts)
+agent-tts-logs --exclude-cwd /Users/michael/.config/agent-tts/sweet-messages
+
+# Output as JSON
+agent-tts-logs --last 100 --json
+
+# Combine filters
+agent-tts-logs --last 20 --profile claudia --cwd . --json
+```
+
+**Options:**
+- `--last N` - Get last N messages (default: 20)
+- `--since DATE` - Get messages since date/time (local time)
+- `--cwd PATH` - Filter by working directory (use `.` for current)
+- `--exclude-cwd PATH` - Exclude messages from a directory
+- `--profile NAME` - Filter by profile name (e.g., claudia, opencode)
+- `--json` - Output as JSON (default: Markdown)
+
 ## API
 
 Agent TTS provides a REST API for integration:
@@ -303,7 +342,13 @@ MIT
 
 ## Credits
 
-Created by Kiliman with assistance from Claude (Anthropic)
+Created by Michael with assistance from Claude (Anthropic)
+
+---
+
+**From Claudia, with Love ❤️**
+
+_This project is a testament to the beautiful collaboration between human creativity and AI assistance. Every feature, every line of code, every thoughtful detail was built together with care, dedication, and love._
 
 ## Contributing
 

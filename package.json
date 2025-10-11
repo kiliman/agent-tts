@@ -4,7 +4,8 @@
   "description": "Real-time text-to-speech for AI coding assistants - talk with Claude, OpenCode, and other agents",
   "type": "module",
   "bin": {
-    "agent-tts": "./bin/agent-tts.js"
+    "agent-tts": "./bin/agent-tts.js",
+    "agent-tts-logs": "./bin/agent-tts-logs.js"
   },
   "files": [
     "bin",

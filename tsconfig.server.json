@@ -30,6 +30,7 @@
     "baseUrl": "."
   },
   "include": [
+    "src/cli/**/*",
     "src/server/**/*",
     "src/services/**/*",
     "src/parsers/**/*",
@@ -38,7 +39,8 @@
     "src/config/**/*",
     "src/monitoring/**/*",
     "src/types/**/*",
-    "src/shared/**/*"
+    "src/shared/**/*",
+    "src/utils/**/*"
   ],
   "exclude": ["node_modules", "dist"]
 }
