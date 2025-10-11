@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2025-10-11
+
+### ✨ Features
+
+- ✨ Add comprehensive image extraction from chat messages
+  - Extract images from Claude Code JSONL chat logs during parsing
+  - SHA-256 hash-based deduplication with sharded directory structure
+  - Cache images in `~/.cache/agent-tts/images/{hash-prefix}/{full-hash}.{ext}`
+  - Store comma-delimited image paths in database `images` column
+  - Display clickable image thumbnails in chat UI (both user and assistant messages)
+  - Serve images via `/images/*` route for browser playback
+  - Include images in websocket `log-added` events for real-time display
+- ✨ Add `agent-tts-regenerate-db` CLI tool for database regeneration
+  - Professional CLI interface with `--help` and `--swap` flags
+  - Automatic database backup with timestamped filenames
+  - Keep last 10 backups automatically (older backups auto-deleted)
+  - Populate `file_states` table to prevent duplicate processing on restart
+  - Display file tracking statistics during regeneration
+- ✨ Add `role` column to database for proper user/assistant message attribution
+  - Include role in all database queries
+  - Enable proper message styling in UI based on role
+
+### 🐛 Fixes
+
+- 🐛 Fix duplication bug by populating `file_states` table during regeneration
+- 🐛 Fix images not appearing in real-time by adding to websocket payloads
+- 🐛 Fix missing role column in database SELECT queries
+
+### ♻️ Refactoring
+
+- ♻️ Move TypeScript scripts from root `scripts/` to `src/scripts/`
+- ♻️ Convert regenerate-db script to proper CLI tool with bin entry point
+- ♻️ Add ImageExtractor utility for centralized image processing
+- ♻️ Make parsers async to support image extraction
+
+### 📝 Documentation
+
+- 📝 Document image extraction feature in README
+- 📝 Add `agent-tts-regenerate-db` CLI tool documentation
+- 📝 Update database schema documentation with `images` and `role` columns
+
+**Version bump**: Minor release (0.8.0 → 0.9.0) - Major new feature: comprehensive image extraction and display. Chat messages with images are now extracted from JSONL files, deduplicated, cached, and displayed as clickable thumbnails in the UI. Database regeneration tool now properly populates file_states to prevent duplicates on restart.
+
 ## [0.8.0] - 2025-10-08
 
 ### ✨ Features
