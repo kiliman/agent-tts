@@ -1,7 +1,7 @@
 import { BaseParser, LogMode } from './base-parser.js'
 import { ParsedMessage } from '../types/config.js'
 import type { Message, TextBlock } from '@anthropic-ai/sdk/resources/messages'
-import { extractImagesFromMessage } from '../utils/image-extractor.js'
+import { extractImagesFromMessage, extractVisionImages } from '../utils/image-extractor.js'
 
 export class ClaudeCodeParser extends BaseParser {
   getLogMode(): LogMode {
@@ -93,6 +93,9 @@ export class ClaudeCodeParser extends BaseParser {
             continue
           }
 
+          // Extract vision images from <vision> tags in assistant message
+          const visionImages = await extractVisionImages(text)
+
           // Parse timestamp
           const timestamp = data.timestamp ? new Date(data.timestamp) : new Date()
 
@@ -101,6 +104,7 @@ export class ClaudeCodeParser extends BaseParser {
             content: text,
             timestamp,
             cwd: data.cwd || cwd, // Use message-specific cwd if available, otherwise use the file-level cwd
+            images: visionImages.length > 0 ? visionImages : undefined,
           })
         }
       } catch (error) {

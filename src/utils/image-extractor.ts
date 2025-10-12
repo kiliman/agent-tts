@@ -1,7 +1,7 @@
-import { createHash } from 'crypto'
-import { mkdir, writeFile } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
+import { createHash } from 'node:crypto'
+import { existsSync } from 'node:fs'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { AGENT_TTS_PATHS } from './xdg-paths.js'
 
 // MIME type to extension mapping
@@ -111,6 +111,44 @@ export async function extractImagesFromMessage(content: any[]): Promise<string[]
       } catch (error) {
         console.error('[ImageExtractor] Failed to extract image:', error)
       }
+    }
+  }
+
+  return imagePaths
+}
+
+/**
+ * Extract images from <vision> tags in assistant messages
+ * @param text Assistant message text that may contain <vision>filepath</vision> tags
+ * @returns Array of saved image paths (hash-based)
+ */
+export async function extractVisionImages(text: string): Promise<string[]> {
+  const imagePaths: string[] = []
+
+  // Match <vision>filepath</vision> tags - only absolute paths starting with /
+  const visionRegex = /<vision>(\/[^<]+)<\/vision>/g
+  const matches = text.matchAll(visionRegex)
+
+  for (const match of matches) {
+    const filePath = match[1]
+
+    try {
+      // Read the image file
+      const fs = await import('node:fs/promises')
+      const imageBuffer = await fs.readFile(filePath)
+
+      // Determine mime type from file extension
+      const extMatch = filePath.match(/\.([^.]+)$/)
+      const ext = extMatch ? extMatch[1].toLowerCase() : 'png'
+      const mimeType = Object.entries(MIME_TO_EXT).find(([, e]) => e === ext)?.[0] || 'image/png'
+
+      // Save to cache with hash-based naming
+      const path = await saveImage(imageBuffer, mimeType)
+      imagePaths.push(path)
+
+      console.log(`[ImageExtractor] Extracted vision image: ${filePath} -> ${path}`)
+    } catch (error) {
+      console.error(`[ImageExtractor] Failed to extract vision image ${filePath}:`, error)
     }
   }
 
