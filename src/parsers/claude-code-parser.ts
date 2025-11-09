@@ -38,6 +38,11 @@ export class ClaudeCodeParser extends BaseParser {
             continue
           }
 
+          // Skip sidechain messages (sub-agent conversations)
+          if (data.isSidechain === true) {
+            continue
+          }
+
           let content: string = ''
           let imagePaths: string[] = []
 
@@ -84,6 +89,11 @@ export class ClaudeCodeParser extends BaseParser {
             images: imagePaths.length > 0 ? imagePaths : undefined,
           })
         } else if (data.type === 'assistant' && data.message) {
+          // Skip sidechain messages (sub-agent conversations)
+          if (data.isSidechain === true) {
+            continue
+          }
+
           // Process assistant message
           const message = data.message as Message
 
