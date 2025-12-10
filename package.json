@@ -42,7 +42,7 @@
     "format": "prettier --write .",
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
-    "db:regenerate": "tsx scripts/regenerate-db.ts"
+    "db:regenerate": "tsx src/scripts/regenerate-db.ts --swap"
   },
   "keywords": [
     "tts",

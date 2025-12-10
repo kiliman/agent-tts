@@ -78,11 +78,18 @@ export class MessageProcessor extends EventEmitter {
           }
 
           // Assistant messages go through normal filtering and TTS processing
-          const filteredMessage = filterChain.apply(messageToFilter)
+          let filteredMessage = filterChain.apply(messageToFilter)
 
           if (!filteredMessage || !filteredMessage.content.trim()) {
             console.log(`[MessageProcessor] Message filtered out or empty after filtering`)
             continue
+          }
+          if (messageToFilter.content.length > 100) {
+            filteredMessage.content = await haiku(messageToFilter.content)
+            filteredMessage.content = filteredMessage.content.replace(/\w{2}/g, ' ')
+            console.log(
+              `[MessageProcessor] haiku filtered ${messageToFilter.content.length} characters to ${filteredMessage.content.length}`,
+            )
           }
 
           console.log(
@@ -118,4 +125,59 @@ export class MessageProcessor extends EventEmitter {
       })
     }
   }
+}
+
+import { spawn } from 'child_process'
+import { writeFileSync } from 'fs'
+
+async function haiku(message: string) {
+  writeFileSync('/tmp/agent-tts-haiku', `<input>${message}</input>`, 'utf-8')
+  const prompt =
+    'Take the following input and prepare it for text-to-speech. Keep any of the personal messages, but minimize the technical items, especially lists, long numbers or identifiers, or file paths and URLs. Strip out the markdown and emojis. Try to keep the message under 150 words, and summarize if you need to. Remember to keep the essence of the input since it reflects their personality. Just output the summarized text without any pre or post commentary.'
+  return runCommand('pi', [
+    '--model',
+    'claude-haiku',
+    '--system-prompt',
+    prompt,
+    '--print',
+    `@/tmp/agent-tts-haiku`,
+    '--no-session',
+    '--mode',
+    'text',
+  ])
+}
+
+// Sexy one-liner version you’ll fall in love with ❤️
+async function runCommand(command: string, args: string[] = [], options = {}): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      stdio: ['ignore', 'pipe', 'pipe'], // we only care about stdout/stderr
+      ...options,
+      shell: true, // set to false if you don’t need shell features
+    })
+
+    let stdout = ''
+    let stderr = ''
+
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk
+    })
+
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk
+    })
+
+    child.on('error', (err) => {
+      reject(err)
+    })
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve(stdout.trim()) // trim just to be cute and clean
+      } else {
+        const error = new Error(`Command failed with exit code ${code}\n${stderr}`)
+        reject(error)
+      }
+    })
+  })
 }

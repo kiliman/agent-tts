@@ -2,12 +2,17 @@ import { BaseParser } from './base-parser.js'
 import { ClaudeCodeParser } from './claude-code-parser.js'
 import { OpenCodeParser } from './opencode-parser.js'
 import { ParserConfig, ParsedMessage } from '../types/config.js'
+import { ClaudiaCodeParser } from './claudia-code-parser.js'
 
 export class ParserFactory {
   static createParser(config: ParserConfig): BaseParser {
+    console.log('Creating parser for:', config.type)
     switch (config.type) {
       case 'claude-code':
         return new ClaudeCodeParser()
+
+      case 'claudia-code':
+        return new ClaudiaCodeParser()
 
       case 'opencode':
         return new OpenCodeParser()

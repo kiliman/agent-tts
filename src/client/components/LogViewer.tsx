@@ -15,7 +15,7 @@ interface LogEntry {
   voiceName?: string
   isFavorite?: boolean
   cwd?: string
-  role?: 'user' | 'assistant'
+  role?: 'user' | 'assistant' | 'bash'
   audioUrl?: string
   images?: string // Comma-delimited list of image paths
 }

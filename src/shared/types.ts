@@ -22,7 +22,7 @@ export interface TTSLogEntry {
   ttsMessage: string
   elapsed: number
   cwd?: string // current working directory
-  role?: 'user' | 'assistant' // Track the role for proper display
+  role?: 'user' | 'assistant' | 'bash' // Track the role for proper display
   images?: string // Comma-delimited list of image paths
 }
 

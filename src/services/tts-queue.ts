@@ -108,7 +108,7 @@ export class TTSQueueProcessor extends EventEmitter {
 
       // Check if we already have the audio file saved
       const audioFilePath = this.getAudioFilePath(message.profile, message.timestamp)
-      const skipTTS = true
+      const skipTTS = message.filteredText.length < 100
       if (existsSync(audioFilePath)) {
         console.log(`[TTSQueue] Found existing audio file: ${audioFilePath}`)
         await this.audioPlayer.play(audioFilePath)

@@ -12,14 +12,14 @@ export interface ProfileConfig {
 }
 
 export interface ParserConfig {
-  type: 'claude-code' | 'opencode' | 'custom'
+  type: 'claude-code' | 'claudia-code' | 'opencode' | 'custom'
   name?: string // Display name for the tool (e.g., "Claude Code", "OpenCode")
   iconUrl?: string // URL to tool icon (e.g., /images/claude-code.png)
   customParser?: (content: string) => ParsedMessage[]
 }
 
 export interface ParsedMessage {
-  role: 'user' | 'assistant' | 'system'
+  role: 'user' | 'assistant' | 'system' | 'bash'
   content: string
   timestamp?: Date
   cwd?: string
@@ -86,6 +86,6 @@ export interface TTSQueueEntry {
   processingTime?: number
   isFavorite?: boolean
   cwd?: string
-  role?: 'user' | 'assistant' // Track the role for proper display
+  role?: 'user' | 'assistant' | 'bash' // Track the role for proper display
   images?: string // Comma-delimited list of image paths
 }

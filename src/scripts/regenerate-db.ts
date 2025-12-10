@@ -5,6 +5,7 @@ import os from 'os'
 import fs from 'fs'
 import { glob } from 'glob'
 import { ClaudeCodeParser } from '../parsers/claude-code-parser.js'
+import { ClaudiaCodeParser } from '../parsers/claudia-code-parser.js'
 import { OpenCodeParser } from '../parsers/opencode-parser.js'
 import { FilterChain } from '../filters/filter-chain.js'
 import { ParsedMessage, ProfileConfig } from '../types/config.js'
@@ -96,7 +97,7 @@ async function regenerateDatabase() {
       role TEXT CHECK(role IN ('user', 'assistant')),
       images TEXT
     );
-    
+
     CREATE TABLE IF NOT EXISTS file_states (
       filepath TEXT PRIMARY KEY,
       last_modified INTEGER NOT NULL,
@@ -104,7 +105,7 @@ async function regenerateDatabase() {
       last_processed_offset INTEGER NOT NULL,
       updated_at INTEGER DEFAULT (strftime('%s', 'now'))
     );
-    
+
     CREATE INDEX IF NOT EXISTS idx_tts_queue_state ON tts_queue(state);
     CREATE INDEX IF NOT EXISTS idx_tts_queue_timestamp ON tts_queue(timestamp DESC);
     CREATE INDEX IF NOT EXISTS idx_tts_queue_profile ON tts_queue(profile);
@@ -127,6 +128,8 @@ async function regenerateDatabase() {
     let parser
     if (profile.parser.type === 'claude-code') {
       parser = new ClaudeCodeParser()
+    } else if (profile.parser.type === 'claudia-code') {
+      parser = new ClaudiaCodeParser()
     } else if (profile.parser.type === 'opencode') {
       parser = new OpenCodeParser()
     } else {
@@ -322,7 +325,9 @@ async function regenerateDatabase() {
     console.log(`1. Stop the agent-tts service`)
     console.log(`2. Run: agent-tts-regenerate-db --swap`)
     console.log(`   OR manually:`)
-    console.log(`   - Backup: cp ${path.join(AGENT_TTS_PATHS.state, 'agent-tts.db')} ${path.join(AGENT_TTS_PATHS.state, 'backups', 'agent-tts.db.backup')}`)
+    console.log(
+      `   - Backup: cp ${path.join(AGENT_TTS_PATHS.state, 'agent-tts.db')} ${path.join(AGENT_TTS_PATHS.state, 'backups', 'agent-tts.db.backup')}`,
+    )
     console.log(`   - Replace: cp ${dbPath} ${path.join(AGENT_TTS_PATHS.state, 'agent-tts.db')}`)
     console.log(`3. Restart the agent-tts service`)
   }

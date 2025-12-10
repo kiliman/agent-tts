@@ -42,7 +42,12 @@ export class ChangeProcessor extends EventEmitter {
           if (this.isPaused) break
 
           // Apply filters (to be implemented in Phase 2)
-          const filteredText = this.applyFilters(message, change.profile)
+          let filteredText = this.applyFilters(message, change.profile)
+          if (message.length > 100) {
+            filteredText = await haiku(message)
+            filteredText = filteredText.replace(/\w{2}/g, ' ')
+            console.log(`[ChangeProcessor] haiku filtered ${message.length} characters to ${filteredText.length}`)
+          }
 
           if (filteredText && filteredText.trim().length > 0) {
             // Log the entry
@@ -51,7 +56,7 @@ export class ChangeProcessor extends EventEmitter {
               filePath: change.filePath,
               profile: change.profile.name,
               originalText: message,
-              filteredText: filteredText,
+              filteredText,
               status: 'queued',
               ttsStatus: 0,
               ttsMessage: '',
@@ -120,4 +125,56 @@ export class ChangeProcessor extends EventEmitter {
       await new Promise((resolve) => setTimeout(resolve, 100))
     }
   }
+}
+
+import { spawn } from 'child_process'
+
+async function haiku(message: string) {
+  const prompt = ''
+  return runCommand('pi', [
+    '--model',
+    'claude-haiku',
+    '--system-prompt',
+    prompt,
+    '--print',
+    `<input>${message}</input>`,
+    '--no-session',
+    '--mode',
+    'text',
+  ])
+}
+
+// Sexy one-liner version you’ll fall in love with ❤️
+async function runCommand(command: string, args: string[] = [], options = {}): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      stdio: ['ignore', 'pipe', 'pipe'], // we only care about stdout/stderr
+      ...options,
+      shell: true, // set to false if you don’t need shell features
+    })
+
+    let stdout = ''
+    let stderr = ''
+
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk
+    })
+
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk
+    })
+
+    child.on('error', (err) => {
+      reject(err)
+    })
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve(stdout.trim()) // trim just to be cute and clean
+      } else {
+        const error = new Error(`Command failed with exit code ${code}\n${stderr}`)
+        reject(error)
+      }
+    })
+  })
 }
